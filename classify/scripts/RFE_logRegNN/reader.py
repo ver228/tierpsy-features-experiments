@@ -61,7 +61,7 @@ def read_feats():
     
     return feat_data, col2ignore_r
 
-def get_core_features(feat_data, col2ignore_r):
+def get_core_features(feat_data, col2ignore_r, is_expanded = True):
     assert ('OW' in feat_data) and ('tierpsy' in feat_data) 
     
     
@@ -89,11 +89,16 @@ def get_core_features(feat_data, col2ignore_r):
     
     #tierpsy
     col_v = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
-    col_v = list(set([x[2:] if x.startswith('d_') else x for x in col_v]))
+    if not is_expanded:
+        col_v = list(set([x[2:] if x.startswith('d_') else x for x in col_v]))
+        col_v = _remove_end(col_v, ['_abs'])
+        col_v = _remove_end(col_v, ['_norm'])
+    
+    
+    
+    
     col_v = _remove_end(col_v, ['_10th', '_50th', '_90th', '_95th', '_IQR'])
     col_v = _remove_end(col_v, ['_w_forward', '_w_backward']) #where is paused??
-    col_v = _remove_end(col_v, ['_abs'])
-    col_v = _remove_end(col_v, ['_norm'])
     col_v = _remove_end(col_v, ['_frequency', '_fraction', '_duration', ])
     core_feats['tierpsy'] = sorted(col_v)
     
@@ -105,6 +110,8 @@ def get_feat_group_indexes(core_feats_v, col_feats):
     '''
     Get the keys, i am assuming there is a core_feats for each of the col_feats
     '''
+    
+    
     
     c_feats_dict = {x:ii for ii, x in enumerate(core_feats_v)}
     
@@ -118,8 +125,10 @@ def get_feat_group_indexes(core_feats_v, col_feats):
         #the correct index was not found return -1
         return -1 
         
-    
-    col_feats = [x[2:] if x.startswith('d_') else x for x in col_feats]
+    is_expanded = any(x.startswith('d_') for x in core_feats_v)
+    if not is_expanded: 
+        #if it is not expanded put derivatives as the same
+        col_feats = [x[2:] if x.startswith('d_') else x for x in col_feats]
     f_groups_inds = np.array([_search_feat(x) for x in col_feats])
     
     

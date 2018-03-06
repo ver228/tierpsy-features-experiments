@@ -18,36 +18,50 @@ from sklearn.model_selection import StratifiedShuffleSplit
 import multiprocessing as mp
 
 from trainer import softmax_RFE
-from reader import read_feats, get_core_features, get_feat_group_indexes
+from reader import read_feats
+
+core_feats_reduced = ['relative_hips_angular_velocity_tail_tip',
+       'relative_radial_velocity_hips', 'relative_angular_velocity_hips',
+       'relative_angular_velocity_head_tip', 'motion_mode_backward', 'area',
+       'relative_radial_velocity_neck', 'relative_angular_velocity_tail_tip',
+       'relative_neck_angular_velocity_head_tip', 'speed',
+       'relative_radial_velocity_tail_tip', 'angular_velocity', 'major_axis',
+       'relative_hips_radial_velocity_tail_tip', 'width_tail_base',
+       'curvature_hips', 'curvature_tail', 'relative_radial_velocity_head_tip',
+       'curvature_neck', 'width_midbody', 'width_head_base',
+       'relative_speed_midbody', 'length',
+       'relative_neck_radial_velocity_head_tip', 'curvature_midbody',
+       'curvature_head', 'quirkiness', 'minor_axis']
+
 
 
 if __name__ == "__main__":
     feat_data, col2ignore_r = read_feats()
+    #del feat_data['all']
+    #del feat_data['OW']
     
     #%%
     df = feat_data['tierpsy']
-    v_cols = [x for x in df.columns if not 'hu' in x]
-    v_cols = [x for x in v_cols if not 'eigen_projection' in x]
-    v_cols = [x for x in v_cols if not '_w_' in x]
-    v_cols = [x for x in v_cols if not 'blob_' in x]
-    v_cols = [x for x in v_cols if not '_base' in x]
+    v_cols = [x for x in df.columns if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]
+    index_cols = [x for x in col2ignore_r if x in df]
+    #feat_data['tierpsy_reduced'] = df[index_cols + v_cols].copy() #reduce to only the selected features 
     
-    feat_data['tierpsy_reduced'] = df[v_cols]
-    #%%
-    
-    del feat_data['all']
-    del feat_data['OW']
     
     
     #%%
-    n_folds = 25
+    
+    cuda_id = 0
+    
     batch_size = 250
-    
     n_epochs = 250
+    
     metric2exclude = 'loss'
     
-    cuda_id = 1
-    n_feats2remove = 'log2' #1#
+    #n_folds = 10
+    #n_feats2remove = 'log2'
+    
+    n_folds = 10
+    n_feats2remove = 1
     
     fold_param = (cuda_id, n_epochs, batch_size, metric2exclude, n_feats2remove)
     
@@ -106,9 +120,9 @@ if __name__ == "__main__":
             plt.plot(acc)
         plt.title(k)
         
-        plt.ylim((0, 55))
+        plt.ylim((0, 60))
     
-    plt.figure()
+    
     #%%
     fig, ax = plt.subplots(1, 1)
     for k, dat in res_db.items():
@@ -131,8 +145,8 @@ if __name__ == "__main__":
         
         
         h = ax.errorbar(xx, yy, yerr=err, label = k)
-    plt.xlim(0, 64)
-    plt.ylim(10, 45)
+    #plt.xlim(0, 64)
+    #plt.ylim(10, 45)
     plt.legend()
     
     #%%
@@ -150,6 +164,7 @@ if __name__ == "__main__":
         yy = np.mean(dd,axis=0)
         err = np.std(dd,axis=0)
         xx = np.arange(tot, 0, -1) + 1
+        
         plt.errorbar(xx, yy, yerr=err)
         
         

@@ -11,7 +11,7 @@ import matplotlib.pylab as plt
 import pandas as pd
 if __name__ == '__main__':
     save_name = 'RFE_G_SoftMax_R.pkl'
-   
+    #save_name = 'RFE_G_SoftMax_R_expanded.pkl'
     #%%
     with open(save_name, "rb" ) as fid:
         results = pickle.load(fid)
@@ -43,15 +43,15 @@ if __name__ == '__main__':
     for db_name, dat in res_db.items():
         #if k != 'tierpsy': continue
         
-        acc = dat[2]
+        val = dat[3]
         feats = dat[0]
         
         
         
         tot = len(feats[0])
         
-        yy = np.mean(acc,axis=0)
-        err = np.std(acc,axis=0)
+        yy = np.mean(val,axis=0)
+        err = np.std(val,axis=0)
         xx = np.arange(tot, 0, -1) + 1
         plt.errorbar(xx, yy, yerr=err)
         
@@ -61,21 +61,22 @@ if __name__ == '__main__':
     for db_name, dat in res_db.items():
         #if k != 'tierpsy': continue
         
-        acc = dat[2]
+        val = dat[3]
         feats = dat[0]
         
         plt.figure()
         
         tot = len(feats[0])
         
-        yy = np.mean(acc,axis=0)
-        err = np.std(acc,axis=0)
+        yy = np.mean(val,axis=0)
+        err = np.std(val,axis=0)
         xx = np.arange(tot, 0, -1) + 1
         plt.errorbar(xx, yy, yerr=err)
         
         ind = np.argmax(yy)
         
         th = yy[ind] - err[ind]
+        #th = yy[ind]
         min_ind = np.where(yy >= th)[0][-1]
         
         
@@ -105,12 +106,8 @@ if __name__ == '__main__':
         useless_feats = df_m.index[:min_ind]
         usefull_feats = df_m.index[min_ind:]
         feats_div[db_name] = (useless_feats, usefull_feats)
+    #%%
     
-    useless_feats, usefull_feats = feats_div['tierpsy_no_blob_no_eigen']
+    useless_feats, usefull_feats = feats_div['all_ow']
+    #useless_feats, usefull_feats = feats_div['tierpsy_no_blob_no_eigen']
     
-#    ff_str = 'turn'
-#    dd = [(ii,x) for ii,x in enumerate(useless_feats) if ff_str in x]
-#    print('BAD *****', dd)
-#    
-#    dd = [(ii,x) for ii,x in enumerate(usefull_feats) if ff_str in x]
-#    print('GOOD ****', dd)

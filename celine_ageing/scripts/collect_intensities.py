@@ -26,9 +26,11 @@ if __name__ == '__main__':
     
     bad_f = []
     tot_exp = 0
-    for d_id, dat in experiments_df.groupby(('replicated_n', 'strain', 'worm_id')):
-        print(d_id)
-        
+    exp_g = experiments_df.groupby(('replicated_n', 'strain', 'worm_id'))
+    tot_g = len(exp_g)
+    for i_group, (d_id, dat) in enumerate(exp_g):
+        print('{} of {}: {}'.format(i_group + 1, tot_g, d_id))
+
         s_intensities = []
         for irow, row in dat.iterrows():
             fname = os.path.join(row['directory'], row['base_name'] + '_intensities.hdf5')

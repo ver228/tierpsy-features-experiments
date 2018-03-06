@@ -4,9 +4,7 @@
 Created on Fri Jan 19 17:20:28 2018S
 
 @author: ajaver
-S
-Modified from: 
-    https://github.com/vinhkhuc/PyTorch-Mini-Tutorials/blob/master/2_logistic_regression.py
+
 """
 
 import numpy as np
@@ -60,7 +58,7 @@ def softmax_RFE_g(data_in):
         print('Test: loss={:.4}, acc={:.2f}%, f1={:.4}'.format(*res))
         
         n_core_f = len(core_feats_l)
-        print(i_fold + 1, n_core_f, n_features)
+        print(db_name, i_fold + 1, n_core_f, n_features)
         
 
         if n_core_f < 2:
@@ -115,32 +113,39 @@ def softmax_RFE_g(data_in):
 
 #%%
 if __name__ == "__main__":
-    
-    
+    is_expanded = False
     
     feat_data, col2ignore_r = read_feats()
-    core_feats = get_core_features(feat_data, col2ignore_r)
+    core_feats = get_core_features(feat_data, col2ignore_r, is_expanded)    
     
     
-    if True:
+    if is_expanded:
         save_name = 'RFE_G_SoftMax_R.pkl'
-        df = feat_data['tierpsy']
-        cols_no_blob = [x for x in df.columns if 'blob' not in x]
-        feat_data['tierpsy_no_blobs'] = df[cols_no_blob]
-        core_feats['tierpsy_no_blobs'] = [x for x in core_feats['tierpsy'] if 'blob' not in x]
-        
-        
-        cols_no_blob_no_eigen = [x for x in cols_no_blob if 'eigen' not in x]
-        feat_data['tierpsy_no_blob_no_eigen'] = df[cols_no_blob_no_eigen]
-        core_feats['tierpsy_no_blob_no_eigen'] = [x for x in core_feats['tierpsy_no_blobs'] if 'eigen' not in x]
-        
-        # i will only remove the features of OW in the hope of finding the ones that are still usefull
-        feat_data['all_ow'] = feat_data['all']
-        
-        dd = ['ow_' + x for x in core_feats['OW']]
-        dd = [x for x in dd if x in core_feats['all']]
-        core_feats['all_ow'] = dd
-        
+    else:
+        save_name = 'RFE_G_SoftMax_R_expanded.pkl'
+    
+    df = feat_data['tierpsy']
+    cols_no_blob = [x for x in df.columns if 'blob' not in x]
+    feat_data['tierpsy_no_blobs'] = df[cols_no_blob]
+    core_feats['tierpsy_no_blobs'] = [x for x in core_feats['tierpsy'] if 'blob' not in x]
+    
+    
+    cols_no_blob_no_eigen = [x for x in cols_no_blob if 'eigen' not in x]
+    feat_data['tierpsy_no_blob_no_eigen'] = df[cols_no_blob_no_eigen]
+    core_feats['tierpsy_no_blob_no_eigen'] = [x for x in core_feats['tierpsy_no_blobs'] if 'eigen' not in x]
+    
+    # i will only remove the features of OW in the hope of finding the ones that are still usefull
+    feat_data['all_ow'] = feat_data['all']
+    
+    dd = ['ow_' + x for x in core_feats['OW']]
+    dd = [x for x in dd if x in core_feats['all']]
+    core_feats['all_ow'] = dd
+    
+    
+    #i am not really interesting in the combination of all the features, and it takes a lot of time to calculate
+    del core_feats['all']
+    del feat_data['all']
+    
     #%%
     n_folds = 10
     batch_size = 250
@@ -176,18 +181,27 @@ if __name__ == "__main__":
         
     
     #softmax_RFE_g(all_data_in[0])
+    #%%
+    _is_debug = False
+    if not _is_debug:
+        p = mp.Pool(15)
+        results = p.map(softmax_RFE_g, all_data_in)
+    else:    
+        #debug
+        results = []
+        r_all_data_in = [x for x in all_data_in if x[0][0] == 'tierpsy']
+        for dat in r_all_data_in:
+            res = softmax_RFE_g(dat)
+        
     
     #%%
-    p = mp.Pool(10)
-    results = p.map(softmax_RFE_g, all_data_in)
-    
-    
     with open(save_name, "wb" ) as fid:
         pickle.dump(results, fid)
     #%%
     with open(save_name, "rb" ) as fid:
         results = pickle.load(fid)
     #%%
+    results = [x for x in results if x[0] is not None]
     res_db = {}
     for (db_name, i_fold), dat in results:
         if db_name not in res_db:
@@ -207,7 +221,7 @@ if __name__ == "__main__":
         
         plt.ylim((0, 55))
     
-    plt.figure()
+    
     #%%
     fig, ax = plt.subplots(1, 1)
     for k, dat in res_db.items():

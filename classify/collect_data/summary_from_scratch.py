@@ -13,8 +13,10 @@ import pandas as pd
 import os
 import multiprocessing as mp
 
-from helper_collect_tierspy import process_feat_tierpsy_file
+from helper_collect_tierpsy import process_feat_tierpsy_file
 from helper_collect_ow import process_ow_file
+
+n_batch= 10#mp.cpu_count()
 
 def _tierpsy_process_row(data_in):
     irow, row = data_in
@@ -31,8 +33,6 @@ def _tierpsy_process_row(data_in):
     
     
 def read_tierpsy_feats(experiments_df):
-    
-    n_batch= mp.cpu_count()
     
     p = mp.Pool(n_batch)
     all_stats = list(p.map(_tierpsy_process_row, experiments_df.iterrows()))
@@ -60,7 +60,7 @@ def _ow_process_row(data_in):
     
 def read_ow_feats(experiments_df):
     
-    n_batch= mp.cpu_count()
+    
     
     p = mp.Pool(n_batch)
     all_stats = list(p.map(_ow_process_row, experiments_df.iterrows()))
@@ -73,10 +73,7 @@ def read_ow_feats(experiments_df):
     return all_stats
 
 #%%
-def get_SWDB_feats():
-    #save_dir = '/Users/ajaver/OneDrive - Imperial College London/classify_strains/manual_features/SWDB'
-    save_dir = './'
-    
+def get_SWDB_feats(save_dir = './'):
     conn = pymysql.connect(host='localhost', database='single_worm_db')
 
     sql = '''
@@ -99,21 +96,19 @@ def get_SWDB_feats():
     experiments_df.index = experiments_df['id']
 
     tierpsy_feats_f = read_tierpsy_feats(experiments_df)
-    
     del tierpsy_feats_f['experiment_id']
     save_name = os.path.join(save_dir, 'tierpsy_features_full_SWDB.csv')
     dd = experiments_df.join(tierpsy_feats_f)
     dd.to_csv(save_name, index_label=False)
     
     ow_feats_f = read_ow_feats(experiments_df)
-    
     del ow_feats_f['experiment_id']
     save_name = os.path.join(save_dir, 'ow_features_full_SWDB.csv')
     dd = experiments_df.join(ow_feats_f)
     dd.to_csv(save_name, index_label=False)
 
 
-def ini_experiments_df():
+def get_CeNDR_feats(save_dir = './'):
     #sys.path.append('/Users/ajaver/Documents/GitHub/process-rig-data/process_files')
     d_path = os.path.join(os.environ['HOME'], 'Github/process-rig-data/process_files')
     sys.path.append(d_path)
@@ -133,23 +128,25 @@ def ini_experiments_df():
     
     experiments_df = get_rig_experiments_df(features_files, csv_files)
     experiments_df = experiments_df.sort_values(by='video_timestamp').reset_index()  
+    
     experiments_df['id'] = experiments_df.index
-    return experiments_df
-
-if __name__ == '__main__':
-#    get_SWDB_feats()
-
-    save_dir = './'
-    experiments_df = ini_experiments_df()
     experiments_df = experiments_df[['id', 'strain', 'directory', 'base_name', 'exp_name']]
-    experiments_df.index = experiments_df['id']
-#    
-#    tierpsy_feats = read_tierpsy_feats(experiments_df)
-#    dd = experiments_df.join(tierpsy_feats)
-#    save_name = os.path.join(save_dir, 'tierpsy_features_full_CeNDR.csv')
-#    dd.to_csv(save_name)
+    
+    tierpsy_feats = read_tierpsy_feats(experiments_df)
+    dd = experiments_df.join(tierpsy_feats)
+    save_name = os.path.join(save_dir, 'tierpsy_features_full_CeNDR.csv')
+    dd.to_csv(save_name)
     
     ow_feats = read_ow_feats(experiments_df)
     dd = experiments_df.join(ow_feats)
     save_name = os.path.join(save_dir, 'ow_features_full_CeNDR.csv')
     dd.to_csv(save_name)
+    
+    
+    return experiments_df
+
+if __name__ == '__main__':
+    #get_SWDB_feats()
+    get_CeNDR_feats()
+    
+    

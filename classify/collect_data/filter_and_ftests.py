@@ -61,11 +61,11 @@ def _h_ftest(columns, feats_g):
     return all_f
 #%%
 if __name__ == '__main__':
-    #MAX_FRAC_NAN = 0.025
-    MAX_FRAC_NAN = 0.05
+    MAX_FRAC_NAN = 0.025
+    #MAX_FRAC_NAN = 0.05
     
-    #MIN_N_VIDEOS, save_dir, feat_files = _get_args('SWDB')
-    MIN_N_VIDEOS, save_dir, feat_files = _get_args('CeNDR')
+    MIN_N_VIDEOS, save_dir, feat_files = _get_args('SWDB')
+    #MIN_N_VIDEOS, save_dir, feat_files = _get_args('CeNDR')
     
     all_features = {}
     for db_name, feat_file in feat_files.items():
@@ -81,7 +81,6 @@ if __name__ == '__main__':
         print(col2remove)
         
     assert (all_features['OW']['base_name'].values == all_features['tierpsy']['base_name'].values).all()
-    
     #%%
     dd = all_features['OW']['strain'].value_counts()
     good_strains = dd.index[(dd>=MIN_N_VIDEOS).values].values
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     for db_name, feats in all_features.items():
         all_features[db_name] = feats[feats['base_name'].isin(valid_ind)]
     #%%
-    n_batch = min(12, mp.cpu_count())
+    n_batch = min(5, mp.cpu_count())
     p = mp.Pool(n_batch)
     #%%
     #all_stats = list(p.map(row_fun, experiments_df.iterrows()))
