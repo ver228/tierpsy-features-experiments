@@ -16,7 +16,7 @@ import multiprocessing as mp
 from helper_collect_tierpsy import process_feat_tierpsy_file
 from helper_collect_ow import process_ow_file
 
-n_batch= 10#mp.cpu_count()
+n_batch= 20#mp.cpu_count()
 
 def _tierpsy_process_row(data_in):
     irow, row = data_in
@@ -101,11 +101,11 @@ def get_SWDB_feats(save_dir = './'):
     dd = experiments_df.join(tierpsy_feats_f)
     dd.to_csv(save_name, index_label=False)
     
-    ow_feats_f = read_ow_feats(experiments_df)
-    del ow_feats_f['experiment_id']
-    save_name = os.path.join(save_dir, 'ow_features_full_SWDB.csv')
-    dd = experiments_df.join(ow_feats_f)
-    dd.to_csv(save_name, index_label=False)
+#    ow_feats_f = read_ow_feats(experiments_df)
+#    del ow_feats_f['experiment_id']
+#    save_name = os.path.join(save_dir, 'ow_features_full_SWDB.csv')
+#    dd = experiments_df.join(ow_feats_f)
+#    dd.to_csv(save_name, index_label=False)
 
 
 def get_CeNDR_feats(save_dir = './'):
@@ -146,7 +146,7 @@ def get_CeNDR_feats(save_dir = './'):
     return experiments_df
 
 if __name__ == '__main__':
-    #get_SWDB_feats()
-    get_CeNDR_feats()
+    get_SWDB_feats()
+    #get_CeNDR_feats()
     
     

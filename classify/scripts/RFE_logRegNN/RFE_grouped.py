@@ -108,52 +108,136 @@ def softmax_RFE_g(data_in):
             fold_res.append((group2remove, res))
         
     return fold_id, fold_res
-
+#%%
+core_feats_reduced = [
+ 'curvature_head',
+ 'curvature_neck',
+ 'curvature_midbody',
+ 'curvature_hips',
+ 'curvature_tail',
+ 
+ 'curvature_mean_hips',
+ 'curvature_mean_neck',
+ 
+ 'curvature_std_head',
+ 'curvature_std_hips',
+ 'curvature_std_midbody',
+ 'curvature_std_neck',
+ 'curvature_std_tail',
+ 
+ 'width_head_base',
+ 'width_midbody',
+ 'width_tail_base',
+ 
+ 'area',
+ 'length',
+ 'major_axis',
+ 'minor_axis',
+ 'quirkiness',
+ 
+ 'speed_head_tip',
+ 
+ 'angular_velocity',
+ 'angular_velocity_head_base',
+ 'angular_velocity_head_tip',
+ 'angular_velocity_tail_tip',
+ 
+ 'relative_to_body_radial_velocity_head_tip',
+ 'relative_to_body_radial_velocity_tail_tip',
+ 
+ 'relative_to_head_base_angular_velocity_head_tip',
+ 'relative_to_head_base_radial_velocity_head_tip',
+ 
+ 'relative_to_neck_angular_velocity_head_tip',
+ 'relative_to_neck_radial_velocity_head_tip',
+ 
+ 'relative_to_hips_radial_velocity_tail_tip',
+ 
+ 'relative_to_tail_base_radial_velocity_tail_tip'
+ ]
 
 
 #%%
 if __name__ == "__main__":
-    is_expanded = False
-    
-    feat_data, col2ignore_r = read_feats()
-    core_feats = get_core_features(feat_data, col2ignore_r, is_expanded)    
-    
-    
-    if is_expanded:
-        save_name = 'RFE_G_SoftMax_R.pkl'
-    else:
-        save_name = 'RFE_G_SoftMax_R_expanded.pkl'
-    
-    df = feat_data['tierpsy']
-    cols_no_blob = [x for x in df.columns if 'blob' not in x]
-    feat_data['tierpsy_no_blobs'] = df[cols_no_blob]
-    core_feats['tierpsy_no_blobs'] = [x for x in core_feats['tierpsy'] if 'blob' not in x]
-    
-    
-    cols_no_blob_no_eigen = [x for x in cols_no_blob if 'eigen' not in x]
-    feat_data['tierpsy_no_blob_no_eigen'] = df[cols_no_blob_no_eigen]
-    core_feats['tierpsy_no_blob_no_eigen'] = [x for x in core_feats['tierpsy_no_blobs'] if 'eigen' not in x]
-    
-    # i will only remove the features of OW in the hope of finding the ones that are still usefull
-    feat_data['all_ow'] = feat_data['all']
-    
-    dd = ['ow_' + x for x in core_feats['OW']]
-    dd = [x for x in dd if x in core_feats['all']]
-    core_feats['all_ow'] = dd
-    
-    
-    #i am not really interesting in the combination of all the features, and it takes a lot of time to calculate
-    del core_feats['all']
-    del feat_data['all']
-    
-    #%%
     n_folds = 10
     batch_size = 250
+    pool_size = 10
     
-    n_epochs = 250
+#    cuda_id = 1    
+#    n_epochs = 250
+#    test_size = 0.2
+#    experimental_dataset = 'SWDB'
+#    is_expanded = True
     
-    cuda_id = 1
+    cuda_id = 1   
+    n_epochs = 150
+    test_size = 1/3
+    experimental_dataset = 'CeNDR'
+    is_expanded = True
     
+    feat_data, col2ignore_r = read_feats(experimental_dataset)
+    core_feats = get_core_features(feat_data, col2ignore_r, is_expanded)    
+    
+    if is_expanded:
+        save_name = '{}_RFE_G_SoftMax_R_expanded.pkl'.format(experimental_dataset)
+        #%%
+        df = feat_data['tierpsy']
+        v_cols = [x for x in df.columns if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]
+        index_cols = [x for x in col2ignore_r if x in df]
+        
+        df_reduced = df[index_cols + v_cols]
+        feat_data['tierpsy_reduced'] = df_reduced.copy()
+        feat_data['tierpsy_reduced_sub'] =  df_reduced.copy()
+        feat_data['tierpsy_reduced_only_norm'] =  df_reduced.copy()
+        
+        c_cols_sub = core_feats['tierpsy']
+        c_cols_sub = [x for x in c_cols_sub if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]
+        core_feats['tierpsy_reduced_sub'] = c_cols_sub
+        
+        c_cols = [x for x in c_cols_sub if not '_w_' in x]
+        core_feats['tierpsy_reduced'] = c_cols
+        core_feats['tierpsy_reduced_only_norm'] = [x for x in c_cols if 'norm' in x]
+        
+        
+        if experimental_dataset == 'SWDB':
+            feat_data['tierpsy_reduced_only_abs'] =  df_reduced.copy()
+            feat_data['tierpsy_reduced_only_noabs'] =  df_reduced.copy()
+            
+            core_feats['tierpsy_reduced_only_abs'] = [x for x in c_cols if ('abs' in x)]
+            core_feats['tierpsy_reduced_only_noabs'] = [x.replace('_abs', '') for x in c_cols if ('abs' in x)]
+            
+        del core_feats['tierpsy']
+        del feat_data['tierpsy']
+        
+        if 'all' in feat_data:
+            del core_feats['OW']
+            del feat_data['OW']
+            del core_feats['all']
+            del feat_data['all']
+    else:
+        save_name = '{}_RFE_G_SoftMax_R.pkl'.format(experimental_dataset)
+    
+        df = feat_data['tierpsy']
+        cols_no_blob_no_eigen = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
+        feat_data['tierpsy_no_blob_no_eigen'] = df[cols_no_blob_no_eigen]
+        core_feats['tierpsy_no_blob_no_eigen'] = [x for x in core_feats['tierpsy'] if not (('eigen' in x) or ('blob' in x))]
+        
+        
+        
+        if 'all' in feat_data:
+            # i will only remove the features of OW in the hope of finding the ones that are still usefull
+            feat_data['all_ow'] = feat_data['all']
+            
+            dd = ['ow_' + x for x in core_feats['OW']]
+            dd = [x for x in dd if x in core_feats['all']]
+            core_feats['all_ow'] = dd
+        
+        
+            #i am not really interesting in the combination of all the features, and it takes a lot of time to calculate
+            del core_feats['all']
+            del feat_data['all']
+
+    #%%
     fold_param = (cuda_id, n_epochs, batch_size)
     
     all_data_in = []
@@ -165,26 +249,50 @@ if __name__ == "__main__":
         
         feats_groups_inds, core_feats_dict = get_feat_group_indexes(core_feats[db_name], col_feats)
         
-        y = feats['strain_id'].values
-        X = feats[col_feats].values
-        
-        cross_v_res = []
-        sss = StratifiedShuffleSplit(n_splits = n_folds, test_size = 0.2, random_state=777)
-        for i_fold, (train_index, test_index) in enumerate(sss.split(X, y)):
-            x_train, y_train  = X[train_index], y[train_index]
-            x_test, y_test  = X[test_index], y[test_index]
+        cv = StratifiedShuffleSplit(n_splits = n_folds, test_size = test_size, random_state=777)
+        if not 'id' in feats:
+            y = feats['strain_id'].values
+            X = feats[col_feats].values
+            cross_v_res = []
             
-            fold_data = (x_train, y_train), (x_test, y_test), (feats_groups_inds, core_feats_dict)
-            fold_id = (db_name, i_fold)
+            for i_fold, (train_index, test_index) in enumerate(cv.split(X, y)):
+                x_train, y_train  = X[train_index], y[train_index]
+                x_test, y_test  = X[test_index], y[test_index]
+                
+                fold_data = (x_train, y_train), (x_test, y_test), (feats_groups_inds, core_feats_dict)
+                fold_id = (db_name, i_fold)
+                
+                all_data_in.append((fold_id, fold_data, fold_param))
+                
+                print(len(set(y_train)), len(set(y_test)))
             
-            all_data_in.append((fold_id, fold_data, fold_param))
-        
-    
+            
+        else:
+            feats_r = feats.drop_duplicates('id')
+            
+            y_r = feats_r['strain_id'].values
+            exp_ids = feats_r['id'].values
+            for i_fold, (train_index, test_index) in enumerate(cv.split(exp_ids, y_r)):
+                good_train = feats['id'].isin(exp_ids[train_index])
+                y_train = feats.loc[good_train, 'strain_id'].values.copy()
+                x_train = feats.loc[good_train, col_feats].values.copy()
+                
+                good_test = feats['id'].isin(exp_ids[test_index])
+                y_test = feats.loc[good_test, 'strain_id'].values.copy()
+                x_test = feats.loc[good_test, col_feats].values.copy()
+                
+                
+                fold_data = (x_train, y_train), (x_test, y_test), (feats_groups_inds, core_feats_dict)
+                fold_id = (db_name, i_fold)
+                
+                all_data_in.append((fold_id, fold_data, fold_param))
+            
+                print(len(set(y_train)), len(set(y_test)))
     #softmax_RFE_g(all_data_in[0])
     #%%
     _is_debug = False
     if not _is_debug:
-        p = mp.Pool(15)
+        p = mp.Pool(pool_size)
         results = p.map(softmax_RFE_g, all_data_in)
     else:    
         #debug
@@ -219,7 +327,7 @@ if __name__ == "__main__":
             plt.plot(acc)
         plt.title(k)
         
-        plt.ylim((0, 55))
+        plt.ylim((0, 70))
     
     
     #%%
@@ -277,7 +385,9 @@ if __name__ == "__main__":
         
         useless_feats = sorted(Counter(useless_feats).items(), key = lambda x : x[1])[::-1]
         usefull_feats = sorted(Counter(usefull_feats).items(), key = lambda x : x[1])[::-1]
+        
     #%%
+    plt.show()
     
     
     

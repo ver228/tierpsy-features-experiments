@@ -5,12 +5,15 @@ Created on Thu Feb 22 10:58:24 2018
 
 @author: ajaver
 """
+
 import pickle
 import numpy as np
 import matplotlib.pylab as plt
 import pandas as pd
+
 if __name__ == '__main__':
-    save_name = 'RFE_G_SoftMax_R.pkl'
+    #save_name = 'CeNDR_RFE_G_SoftMax_R.pkl'
+    save_name = 'SWDB_RFE_G_SoftMax_R.pkl'
     #save_name = 'RFE_G_SoftMax_R_expanded.pkl'
     #%%
     with open(save_name, "rb" ) as fid:
@@ -73,17 +76,17 @@ if __name__ == '__main__':
         xx = np.arange(tot, 0, -1) + 1
         plt.errorbar(xx, yy, yerr=err)
         
-        ind = np.argmax(yy)
+        max_ind = np.argmax(yy)
         
-        th = yy[ind] - err[ind]
+        th = yy[max_ind] - err[max_ind]
         #th = yy[ind]
-        min_ind = np.where(yy >= th)[0][-1]
+        max_err_ind = np.where(yy >= th)[0][-1]
         
         
-        x_t = xx[min_ind]
+        x_t = xx[max_err_ind]
         plt.plot((x_t, x_t), plt.ylim())
         
-        print(db_name, x_t, yy[min_ind], yy.max())
+        print(db_name, x_t, yy[max_err_ind], yy.max())
         
         plt.title(db_name)
         
@@ -101,13 +104,20 @@ if __name__ == '__main__':
         df = pd.DataFrame(np.array(order_vals), index=feats)
         df_m = df.median(axis=1).sort_values()
         
-    
-        
-        useless_feats = df_m.index[:min_ind]
-        usefull_feats = df_m.index[min_ind:]
-        feats_div[db_name] = (useless_feats, usefull_feats)
+        feats_div[db_name] = (df_m, max_err_ind, max_ind)
+        #feats_div[db_name] = (useless_feats, usefull_feats)
     #%%
     
-    useless_feats, usefull_feats = feats_div['all_ow']
-    #useless_feats, usefull_feats = feats_div['tierpsy_no_blob_no_eigen']
+    #useless_feats, usefull_feats = feats_div['all_ow']
+    #df_m, max_err_ind, max_ind = feats_div['all_ow']
+    df_m, max_err_ind, max_ind = feats_div['tierpsy_no_blob_no_eigen']
+    #df_m, max_err_ind, max_ind = feats_div['tierpsy']
+    
+    useless_feats = df_m.index[:max_err_ind]
+    usefull_feats = df_m.index[max_err_ind:]
+    
+    #useless_feats = df_m.index[:max_ind]
+    #usefull_feats = df_m.index[max_ind:]
+    
+    #%%
     

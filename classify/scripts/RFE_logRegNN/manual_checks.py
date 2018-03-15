@@ -12,8 +12,9 @@ import matplotlib.pylab as plt
 
 if __name__ == '__main__':
     n_feats2remove = 'log2'
+    experimental_dataset = 'SWDB'
     
-    save_name = 'RFE_SoftMax_F{}_reduced.pkl'.format(n_feats2remove)
+    save_name = '{}_RFE_SoftMax_F{}_reduced.pkl'.format(experimental_dataset, n_feats2remove)
     with open(save_name, "rb" ) as fid:
             results = pickle.load(fid)
     res_db = {}

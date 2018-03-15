@@ -1,2 +1,4 @@
 
 classify/data/
+
+*.pyc

@@ -35,7 +35,8 @@ def _get_args(set_type):
         save_dir = os.path.join(MAIN_DIR, 'CeNDR/')
         feat_files = {
                 'OW' : 'ow_features_full_CeNDR.csv',
-                'tierpsy' :'tierpsy_features_full_CeNDR.csv'
+                'tierpsy' :'tierpsy_features_full_CeNDR.csv',
+                'tierpsy_augmented' : 'tierspy_features_augmented_CeNDR.csv'
                 }
     elif set_type == 'SWDB':
         MIN_N_VIDEOS = 10
@@ -43,6 +44,13 @@ def _get_args(set_type):
         feat_files = {
                 'OW' : 'ow_features_full_SWDB.csv',
                 'tierpsy' : 'tierpsy_features_full_SWDB.csv'
+                }
+        
+    elif set_type == 'Syngenta':
+        MIN_N_VIDEOS = 3
+        save_dir = os.path.join(MAIN_DIR, 'Syngenta/')
+        feat_files = {
+                'tierpsy_augmented' : 'tierspy_features_augmented_Syngenta.csv'
                 }
     return MIN_N_VIDEOS, save_dir, feat_files
 
@@ -64,7 +72,8 @@ if __name__ == '__main__':
     MAX_FRAC_NAN = 0.025
     #MAX_FRAC_NAN = 0.05
     
-    MIN_N_VIDEOS, save_dir, feat_files = _get_args('SWDB')
+    MIN_N_VIDEOS, save_dir, feat_files = _get_args('Syngenta')
+    #MIN_N_VIDEOS, save_dir, feat_files = _get_args('SWDB')
     #MIN_N_VIDEOS, save_dir, feat_files = _get_args('CeNDR')
     
     all_features = {}
@@ -80,16 +89,18 @@ if __name__ == '__main__':
         print(db_name)
         print(col2remove)
         
-    assert (all_features['OW']['base_name'].values == all_features['tierpsy']['base_name'].values).all()
+    
     #%%
-    dd = all_features['OW']['strain'].value_counts()
-    good_strains = dd.index[(dd>=MIN_N_VIDEOS).values].values
-    
-    for db_name, feats in all_features.items():
-        feats = feats[feats['strain'].isin(good_strains)]
-        #Imputate missing values. I am using the global median to be more conservative
-        all_features[db_name] = feats.fillna(feats.median())
-    
+    if 'OW' in all_features:
+        assert (all_features['OW']['base_name'].values == all_features['tierpsy']['base_name'].values).all()
+        dd = all_features['OW']['strain'].value_counts()
+        good_strains = dd.index[(dd>=MIN_N_VIDEOS).values].values
+        
+        for db_name, feats in all_features.items():
+            feats = feats[feats['strain'].isin(good_strains)]
+            #Imputate missing values. I am using the global median to be more conservative
+            all_features[db_name] = feats.fillna(feats.median())
+        
     #%%
     #    feats = feats[feats['strain'].isin(good_strains)]
     #    feats_g = [(s,dat) for s,dat in feats.groupby('strain')]
@@ -131,6 +142,7 @@ if __name__ == '__main__':
         n_chuck = 50
         valid_cols = [valid_cols[x:x+n_chuck] for x in range(0, len(valid_cols), n_chuck)]
         
+        #this think takes a HUGE amount of memory, likely because p.map creates a copy of feats_g. Can be solved... but probably not worth it
         func = partial(_h_ftest, feats_g=feats_g)
         all_fstats = list(p.map(func, valid_cols))
         #all_fstats = [x for x in all_fstats if x is not None]
@@ -164,8 +176,5 @@ if __name__ == '__main__':
         bn = feat_files[db_name]
         fname = os.path.join(save_dir, 'F{:.3}_{}'.format(MAX_FRAC_NAN, bn))
         feats.to_csv(fname)
-    
-    #%%
-    
     
     

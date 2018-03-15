@@ -4,9 +4,6 @@
 Created on Fri Jan 19 17:20:28 2018S
 
 @author: ajaver
-S
-Modified from: 
-    https://github.com/vinhkhuc/PyTorch-Mini-Tutorials/blob/master/2_logistic_regression.py
 """
 
 import numpy as np
@@ -189,7 +186,7 @@ def softmax_RFE(data_in):
         res = trainer.evaluate(input_v, target_v)
         
         print('Test: loss={:.4}, acc={:.2f}%, f1={:.4}'.format(*res))
-        print(metric2exclude, i_fold + 1, n_features)
+        print(db_name, metric2exclude, i_fold + 1, n_features)
         
         
         if n_features > 1:

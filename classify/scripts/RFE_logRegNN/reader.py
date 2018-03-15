@@ -21,13 +21,20 @@ col2ignore = ['Unnamed: 0', 'exp_name', 'id', 'base_name', 'date',
        'microns_per_pixel', 'mask_file_sizeMB', 'skel_file', 'frac_valid',
        'worm_index', 'n_frames', 'n_valid_skel', 'first_frame']
 #%%
-def read_feats():
+def read_feats(experimental_dataset = 'SWDB'):
     #save_dir = '/Users/ajaver/OneDrive - Imperial College London/classify_strains/manual_features/SWDB/'
-    save_dir = '../../data/SWDB'
-    feat_files = {
-            'tierpsy' : 'F0.025_tierpsy_features_full_SWDB.csv',
-            'OW' : 'F0.025_ow_features_full_SWDB.csv',
-            }
+    
+    if experimental_dataset == 'SWDB':
+        save_dir = '../../data/{}'.format(experimental_dataset)
+        feat_files = {
+                'tierpsy' : 'F0.025_tierpsy_features_full_{}.csv'.format(experimental_dataset),
+                'OW' : 'F0.025_ow_features_full_{}.csv'.format(experimental_dataset),
+                }
+    else:
+        save_dir = '../../data/{}'.format(experimental_dataset)
+        feat_files = {
+                'tierpsy' : 'F0.025_tierspy_features_augmented_{}.csv'.format(experimental_dataset)
+                }
     
     feat_data = {}
     for db_name, bn in feat_files.items():
@@ -44,12 +51,14 @@ def read_feats():
         
     col2ignore_r = col2ignore + ['strain_id', 'set_type']
     
-    # create a dataset with all the features
-    feats = feat_data['OW']
-    col_feats = [x for x in feats.columns if x not in col2ignore_r]
-    feats = feats[col_feats + ['base_name']]
-    feats.columns = [x if x == 'base_name' else 'ow_' + x for x in feats.columns]
-    feat_data['all'] = feat_data['tierpsy'].merge(feats, on='base_name')
+    
+    if 'OW' in feat_data:
+        # create a dataset with all the features
+        feats = feat_data['OW']
+        col_feats = [x for x in feats.columns if x not in col2ignore_r]
+        feats = feats[col_feats + ['base_name']]
+        feats.columns = [x if x == 'base_name' else 'ow_' + x for x in feats.columns]
+        feat_data['all'] = feat_data['tierpsy'].merge(feats, on='base_name')
     
     # scale data
     for db_name, feats in feat_data.items(): 
@@ -62,9 +71,6 @@ def read_feats():
     return feat_data, col2ignore_r
 
 def get_core_features(feat_data, col2ignore_r, is_expanded = True):
-    assert ('OW' in feat_data) and ('tierpsy' in feat_data) 
-    
-    
     def _remove_end(col_v, p2rev):
         col_v_f = []
         for x in col_v:
@@ -80,30 +86,34 @@ def get_core_features(feat_data, col2ignore_r, is_expanded = True):
     # obtain the core features from the feature list
     core_feats = {}
     
-    #OW
-    col_v = [x for x in feat_data['OW'].columns if x not in col2ignore_r]
-    col_v = _remove_end(col_v, ['_abs', '_neg', '_pos'])
-    col_v = _remove_end(col_v, ['_paused', '_forward', '_backward'])
-    col_v = _remove_end(col_v, ['_distance', '_distance_ratio', '_frequency', '_time', '_time_ratio'])
-    core_feats['OW'] = sorted(col_v)
+    if 'OW' in feat_data:
+        col_v = [x for x in feat_data['OW'].columns if x not in col2ignore_r]
+        col_v = _remove_end(col_v, ['_abs', '_neg', '_pos'])
+        col_v = _remove_end(col_v, ['_paused', '_forward', '_backward'])
+        col_v = _remove_end(col_v, ['_distance', '_distance_ratio', '_frequency', '_time', '_time_ratio'])
+        core_feats['OW'] = sorted(col_v)
+        
+    if 'tierpsy' in feat_data:
+        col_v = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
+        col_v = _remove_end(col_v, ['_10th', '_50th', '_90th', '_95th', '_IQR'])
+        
+        col_v = _remove_end(col_v, ['_frequency', '_fraction', '_duration', ])
+        
+            
+        #the other is important, this must be at the end
+        if not is_expanded:
+            col_v = list(set([x[2:] if x.startswith('d_') else x for x in col_v]))
+            col_v = _remove_end(col_v, ['_abs'])
+            col_v = _remove_end(col_v, ['_norm'])
+            col_v = _remove_end(col_v, ['_w_forward', '_w_backward', '_w_paused'])
+            
+        
+        core_feats['tierpsy'] = sorted(col_v)
     
-    #tierpsy
-    col_v = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
-    if not is_expanded:
-        col_v = list(set([x[2:] if x.startswith('d_') else x for x in col_v]))
-        col_v = _remove_end(col_v, ['_abs'])
-        col_v = _remove_end(col_v, ['_norm'])
-    
-    
-    
-    
-    col_v = _remove_end(col_v, ['_10th', '_50th', '_90th', '_95th', '_IQR'])
-    col_v = _remove_end(col_v, ['_w_forward', '_w_backward']) #where is paused??
-    col_v = _remove_end(col_v, ['_frequency', '_fraction', '_duration', ])
-    core_feats['tierpsy'] = sorted(col_v)
-    
-    #all
-    core_feats['all']  = core_feats['tierpsy'] + ['ow_' + x for x in core_feats['OW']]
+    if ('OW' in feat_data) and ('tierpsy' in feat_data):
+        #all
+        core_feats['all']  = core_feats['tierpsy'] + ['ow_' + x for x in core_feats['OW']]
+    #%%
     return core_feats
 
 def get_feat_group_indexes(core_feats_v, col_feats):

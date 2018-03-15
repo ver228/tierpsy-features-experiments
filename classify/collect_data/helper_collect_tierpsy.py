@@ -11,7 +11,7 @@ import pandas as pd
 import tables
 
 from tierpsy_features import get_timeseries_features
-from tierpsy_features.summary_stats import get_summary_stats
+from tierpsy_features.summary_stats import get_n_worms_estimate, get_summary_stats
 
 from tierpsy.helper.misc import TimeCounter, print_flush, get_base_name
 from tierpsy.helper.params import read_fps, read_ventral_side
@@ -130,6 +130,9 @@ if __name__ == '__main__':
     
     delta_time = 1/3
     exp_feats = process_feat_tierpsy_file(fname, delta_time)
+    
+    dd = sorted([x for x in exp_feats.index if ('angular' in x) and ('relative' in x)])
+    print(dd)
     
     #make sure all the features are unique
     assert np.unique(exp_feats.index).size == exp_feats.size
