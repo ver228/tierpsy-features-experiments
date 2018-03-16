@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import pandas as pd
 
+
 if __name__ == '__main__':
     #save_name = 'CeNDR_RFE_G_SoftMax_R.pkl'
     save_name = 'SWDB_RFE_G_SoftMax_R.pkl'
@@ -48,8 +49,6 @@ if __name__ == '__main__':
         
         val = dat[3]
         feats = dat[0]
-        
-        
         
         tot = len(feats[0])
         

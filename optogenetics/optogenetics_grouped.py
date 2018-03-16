@@ -13,10 +13,13 @@ import numpy as np
 import random
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.patches as patches
-import multiprocessing as mp
+from numba import jit
+from scipy.stats import entropy
+import tqdm
+import pickle
 from tierpsy_features import timeseries_feats_columns, ventral_signed_columns
 from collect_data import read_light_data, get_pulses_indexes
-
+        
 
 
 all_feats = timeseries_feats_columns + ['d_' + x for x in timeseries_feats_columns]
@@ -67,7 +70,55 @@ def _centred_feat_df(mask_file, feat_file):
     centered_df = pd.concat(centered_data)
     
     return centered_df
+
+@jit(nopython=True)
+def _calc_histograms(x_digit, y_digit, is_atr_d, n_y, n_x):
+    H_atr = np.zeros((n_x, n_y))
+    H_ctr = np.zeros((n_x, n_y))
+    for ii in range(y_digit.size):
+        x = x_digit[ii]
+        y = y_digit[ii]
+        is_atr = is_atr_d[ii]
+        
+        if y >= 0:
+            if is_atr:
+                H_atr[y, x] += 1
+            else:
+                H_ctr[y, x] += 1
+                
+    return H_ctr, H_atr
+
+def _get_JSD(_P, _Q):
+    _M = 0.5 * (_P + _Q)
+    JS =  0.5 * (entropy(_P, _M) + entropy(_Q, _M))
+    return JS
+
+def _get_all_JSD(binned_df, atr_inds, n_xbins, n_ybins, ):
     
+    min_valid_counts = 500
+    
+    is_atr_d = binned_df['exp_row'].isin(atr_inds).values
+    x_digit = binned_df['timestamp'].values
+    
+    all_hist = []
+    for feat in all_feats:
+        y_digit = binned_df[feat].values
+        H_ctr, H_atr = _calc_histograms(x_digit, y_digit, is_atr_d, n_xbins, n_ybins)
+        
+        N_atr = H_atr.sum(axis=0)
+        H_atr /= N_atr
+        H_atr[:, N_atr<min_valid_counts] = np.nan
+        
+        N_ctr = H_ctr.sum(axis=0)
+        H_ctr /= N_ctr
+        H_ctr[:, N_ctr<min_valid_counts] = np.nan
+        
+        JS = _get_JSD(H_atr, H_ctr)
+        all_hist.append((feat, JS, H_ctr, H_atr))
+    
+    return all_hist
+
+
 #%%
 if __name__ == '__main__':
     min_pulse_size_s = 3
@@ -142,77 +193,66 @@ if __name__ == '__main__':
             binned_data[feat] = counts
         
         binned_data = pd.DataFrame(binned_data)
+        
+        all_JSD = _get_all_JSD(binned_data, data_indexes['atr'], num_xbins, num_ybins)
+        
         #%%
-        def _digital2histograms(dat, n_x, n_y, min_valid_counts = 500):
-            tot = n_x*n_y
-            all_hist = {}
-            x_digit = dat['timestamp'].values
-            for feat in all_feats:
-                y_digit = dat[feat].values
-                good = y_digit >= 0
-                flat_digit = y_digit[good]*n_x + x_digit[good]
-                flat_counts = np.bincount(flat_digit, minlength=tot)
-                    
-                H = np.reshape(flat_counts, (n_y, n_x))
-                N = H.sum(axis=0)
-                P = H/N
-                P[:, N<min_valid_counts] = np.nan
-                all_hist[feat] = P
-            
-            return all_hist
-        
-        def _getKL(binned_data, atr_inds):
-            good = binned_data['exp_row'].isin(atr_inds)
-            atr_dat = binned_data[good]
-            ctr_dat = binned_data[~good]
-            
-            aP_atr = _digital2histograms(atr_dat, num_xbins, num_ybins)
-            aP_ctr = _digital2histograms(ctr_dat, num_xbins, num_ybins)
-            
-            all_KL = []
-            for feat in aP_atr:
-                P_atr = aP_atr[feat]
-                P_ctr = aP_ctr[feat]
-            
-                KLs = P_atr*np.log((P_atr + 1e-12)/(P_ctr + 1e-12))
-                KL = np.sum(KLs,axis=0)
-                all_KL.append((feat, KL, P_atr, P_ctr))
-            return all_KL
-        
-        all_KL = _getKL(binned_data, data_indexes['atr'])
-        #%% permutations
-        n_permutations = 100
+        n_permutations = 10000
         
         n_atr = len(data_indexes['atr'])
         all_irows = data_indexes['atr'] + data_indexes['etoh']
-        all_p_KL = {}
-        for i_p in range(n_permutations):
-            print('Permutation Test : {} of {}'.format(i_p + 1, n_permutations))
+        
+        
+        #%%
+        all_p_JSD = {}
+        pbar = tqdm.tqdm(range(n_permutations), desc='Permutation Test')
+        for i_p in pbar:
             random.shuffle(all_irows)
+            p_JSD = _get_all_JSD(binned_data, all_irows[:n_atr], num_xbins, num_ybins)
+            p_JSD = [x[:2] for x in p_JSD]
+            for feat, JSD in p_JSD:
+                if not feat in all_p_JSD:
+                    all_p_JSD[feat] = []
+                all_p_JSD[feat].append(JSD)
+        
+        #%%
+        pvals = {}
+        for dat in all_JSD:
+            feat = dat[0]
+            JSD = dat[1]
+            p_JSD = all_p_JSD[feat]
+            p_JSD = np.array(p_JSD)
             
-            p_KL = _getKL(binned_data, all_irows[:n_atr])
-            p_KL = [x[:2] for x in p_KL]
+            nn = (p_JSD > JSD[None, :]).sum(axis=0)
+            pvals[feat] = (nn + 1)/(n_permutations + 1)
             
-            for feat, KL in p_KL:
-                if not feat in all_p_KL:
-                    all_p_KL[feat] = []
-                all_p_KL[feat].append(KL)
-        
-        dat_p_KL = {k:np.percentile(val, (5, 95), axis=0) for k,val in all_p_KL.items()}
+            
+            pvals[feat][np.isinf(JSD)] = np.nan
+            
+        #%%
         
         
         
+        dat_p_JSD = {k:np.percentile(val, (5, 95), axis=0) for k,val in all_p_JSD.items()}
         #%% Sort using the largest change
-        def best_KL(dat):
-            feat, KL, H_atr, H_ctr = dat
-            pKL_95th = dat_p_KL[feat][1]
-            return np.nanmax(KL -pKL_95th)
+        def best_JSD(dat):
+            feat, JSD, H_atr, H_ctr = dat
+            val = np.sum(pvals[feat]<0.005)
+            if val == 0:
+                val = 1-np.nanmin(pvals[feat])
+            
+            return val
         
-        all_KL = sorted(all_KL, key = best_KL)[::-1]
+        all_JSD = sorted(all_JSD, key = best_JSD)[::-1]
         #%%
         with PdfPages('{}_hist.pdf'.format(strain)) as fid_pdf:
-            for feat, KL, H_atr, H_ctr in all_KL:
-                fig,axs = plt.subplots(3,1, figsize = (14, 7), sharex=True)
+            for feat, JSD, H_ctr, H_atr in all_JSD:
+                
+                H_atr[np.isnan(H_atr)] = 0
+                H_ctr[np.isnan(H_ctr)] = 0
+                
+                
+                fig,axs = plt.subplots(4,1, figsize = (14, 9), sharex=True)
                 axs[0].imshow(H_atr, aspect='auto', interpolation='none', cmap="inferno")
                 axs[0].invert_yaxis()
                 axs[1].imshow(H_ctr, aspect='auto', interpolation='none', cmap="inferno")
@@ -220,33 +260,38 @@ if __name__ == '__main__':
                 
                 
                 
-                bot, top = dat_p_KL[feat]
+                bot, top = dat_p_JSD[feat]
                 x = np.arange(bot.size)
                 
                 axs[2].fill_between(x, bot, top, color = 'gray', alpha = 0.1)
                 
-                axs[2].plot(KL, 'r')
+                axs[2].plot(JSD, 'r')
                 
                 yl = axs[2].get_ylim()
                 axs[2].set_ylim((0, yl[1]))
                 
                 #axs[2].fill_between(sorted_x, low_CI, upper_CI, color = '#539caf', alpha = 0.4, label = '95% CI')
-                ini_y, fin_y = axs[2].get_ylim()
-                for i_bin in range(6):
-                    if i_bin == 5:
-                        delP = 90
-                    else:
-                        delP = 5
-                    
-                    
-                    ini_x = (delta4pulse[i_bin] + beforeT)/delT
-                    
-                    p = patches.Rectangle( (ini_x, ini_y), 
-                                  delP/delT, 
-                                  fin_y-ini_y,
-                                  alpha=0.5, 
-                                  color = 'steelblue')
-                    axs[2].add_patch(p)
+                
+                axs[3].plot(np.log10(pvals[feat]))
+                axs[3].set_ylim((np.log10(1/n_permutations) - 0.05, 0.05))
+                
+                for nn in [2,3]:
+                    ini_y, fin_y = axs[nn].get_ylim()
+                    for i_bin in range(6):
+                        if i_bin == 5:
+                            delP = 90
+                        else:
+                            delP = 5
+                        
+                        ini_x = (delta4pulse[i_bin] + beforeT)/delT
+                        
+                        p = patches.Rectangle( (ini_x, ini_y), 
+                                      delP/delT, 
+                                      fin_y-ini_y,
+                                      alpha=0.5, 
+                                      color = 'steelblue')
+                        axs[nn].add_patch(p)
+                
                 
                 plt.suptitle(feat)
                 plt.xlim((-1, H_atr.shape[1]))
@@ -273,4 +318,9 @@ if __name__ == '__main__':
                 fid_pdf.savefig(fig)
                 plt.close(fig) 
         
-                
+        with open('{}.p'.format(strain), 'wb') as fid:
+            dat = (all_JSD, all_p_JSD, pvals)
+            pickle.dump(dat,fid) 
+        
+        
+        

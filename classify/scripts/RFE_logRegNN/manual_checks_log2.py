@@ -11,8 +11,8 @@ import pandas as pd
 import matplotlib.pylab as plt
 
 if __name__ == '__main__':
-    #experimental_dataset = 'SWDB'
-    experimental_dataset = 'Syngenta'
+    experimental_dataset = 'SWDB'
+    #experimental_dataset = 'Syngenta'
     #experimental_dataset = 'CeNDR'
     save_name = '{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
     
