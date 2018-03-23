@@ -2,3 +2,9 @@
 classify/data/
 
 *.pyc
+
+optogenetics/F_hist_old/*
+optogenetics/results_full_hist/*
+
+optogenetics/data/*
+classify/scripts/simple_logRegNN/classifiers/*

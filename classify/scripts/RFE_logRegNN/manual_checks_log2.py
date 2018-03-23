@@ -9,12 +9,22 @@ import pickle
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
+import os
+from reader import read_feats
+
+#%%
+
 
 if __name__ == '__main__':
     experimental_dataset = 'SWDB'
     #experimental_dataset = 'Syngenta'
     #experimental_dataset = 'CeNDR'
-    save_name = '{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    #save_name = './results_data/{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    save_name = './results_data/R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    
+    #%%
+    
+    #%%
     
     #save_name = 'SyngentaLabeled.pkl'
     with open(save_name, "rb" ) as fid:
@@ -59,6 +69,7 @@ if __name__ == '__main__':
         h = ax.errorbar(xx, yy, yerr=err, label = db_name)
     plt.legend()
     #%%
+    
     key = 'tierpsy'#'all' if 'all' in res_db else 'tierpsy'
     
     feats, _,_, val = res_db[key]
@@ -70,10 +81,8 @@ if __name__ == '__main__':
     all_yy = np.mean(val,axis=0)
     all_err = np.std(val,axis=0)
     
-    feats_div = {}
     for db_name, dat in res_db.items():
         #if k != 'tierpsy': continue
-        
         val = dat[3]
         feats = dat[0]
         
@@ -105,30 +114,51 @@ if __name__ == '__main__':
         plt.title(db_name)
         
         
-        feat_orders = {}
+    
+    
+     #%%       
+     #I forgot to add the last feature remaining so I have to do a dirty hack 
+    if os.path.basename(save_name).startswith('R_'):
+        #i forgot to add the last feature extracted...
+        feat_data, col2ignore_r = read_feats(experimental_dataset)
+        all_feats = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
+        del feat_data
         
-        for feats_in_fold in feats:
-            for ii, feat in enumerate(feats_in_fold):
+        #remove ventral signed columns that where not abs (This ones seemed useless...)
+        v_cols = [x for x in all_feats if not (('eigen' in x) or ('blob' in x))]
+        v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
+        all_feats = list(set(v_cols) - set(v_cols_remove))
+        
+        
+        all_feats = set(all_feats)
+        #%%
+        feats_div = {}
+        for db_name, dat in res_db.items():
+            feat_orders = {}
+            feats_in_all_folds, _,_, val = dat
+            
+            feat_orders = {}
+            for feats_in_fold in map(list, feats_in_all_folds):
+                last_feat = list(all_feats - set(sum(feats_in_fold, [])))
+                assert len(last_feat) == 1
+                feats_in_fold = feats_in_fold + [last_feat]
                 
-                if isinstance(feat, list):
-                    for ff in feat:
-                        if not ff in feat_orders:
-                            feat_orders[ff] = []
-                        feat_orders[ff].append(ii)
-                else:
-                    if not feat in feat_orders:
-                        feat_orders[feat] = []
-                    feat_orders[feat].append(ii)
+                tot_feats = sum(map(len,feats_in_fold))
+                
+                n_left = tot_feats
+                for ii, val in enumerate(feats_in_fold):
+                    rank_i = n_left
+                    n_left -= len(val)
+                    for feat in val:
+                        if not feat in feat_orders:
+                            feat_orders[feat] = []
+                        feat_orders[feat].append(rank_i)
+            #%%
             
-            
-        feats, order_vals = zip(*feat_orders.items())
-        df = pd.DataFrame(np.array(order_vals), index=feats)
-        df_m = df.median(axis=1).sort_values()
-        
-    
-        
-        useless_feats = df_m.index[:min_ind]
-        usefull_feats = df_m.index[min_ind:]
-        feats_div[db_name] = (useless_feats, usefull_feats)
-    
-    
+            df = pd.DataFrame(feat_orders).T
+            df_m = df.median(axis=1).sort_values()
+        #%%reduced data     
+        reduced_feats = df_m.index[df_m<=512]
+        with open('reduced_feats_{}.txt'.format(experimental_dataset), 'w') as fid:
+            ss = '\n'.join(reduced_feats)
+            fid.write(ss)

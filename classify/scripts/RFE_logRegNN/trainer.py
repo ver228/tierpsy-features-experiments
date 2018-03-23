@@ -30,12 +30,19 @@ class SimpleNet(nn.Module):
 
 
 class TrainerSimpleNet():
-    def __init__(self, n_classes, n_features, n_epochs = 250, batch_size = 250, cuda_id = 0):
+    def __init__(self, 
+                 n_classes, 
+                 n_features, 
+                 n_epochs = 250, 
+                 batch_size = 250, 
+                 cuda_id = 0,
+                 lr = 0.01, 
+                 momentum = 0.9):
         
         self.model = SimpleNet(n_features, n_classes)
         self.model = self.model.cuda(cuda_id)
         
-        self.optimizer = optim.SGD(self.model.parameters(), lr = 0.01, momentum = 0.9)
+        self.optimizer = optim.SGD(self.model.parameters(), lr = lr, momentum = momentum)
         
         self.n_epochs = n_epochs
         self.batch_size = batch_size
@@ -158,7 +165,7 @@ def softmax_RFE(data_in):
     
     (db_name, i_fold) = fold_id
     (x_train, y_train), (x_test, y_test), col_feats_r = fold_data
-    (cuda_id, n_epochs, batch_size, metric2exclude, n_feats2remove) = fold_param
+    (cuda_id, trainer_args, metric2exclude, n_feats2remove) = fold_param
     
     
     n_classes = int(y_train.max() + 1)
@@ -181,8 +188,9 @@ def softmax_RFE(data_in):
     while len(col_feats_r)>1: #continue as long as there are any feature to remove
         
         n_features = input_v.size(1)
-        trainer = TrainerSimpleNet(n_classes, n_features, n_epochs, batch_size, cuda_id)
+        trainer = TrainerSimpleNet(n_classes, n_features, cuda_id=cuda_id, **trainer_args)
         trainer.fit(input_train, target_train)
+        
         res = trainer.evaluate(input_v, target_v)
         
         print('Test: loss={:.4}, acc={:.2f}%, f1={:.4}'.format(*res))

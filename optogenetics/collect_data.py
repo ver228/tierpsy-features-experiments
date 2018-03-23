@@ -11,6 +11,7 @@ import glob
 import pandas as pd
 import numpy as np
 import tables
+import numba
 
 import matplotlib.pylab as plt
 from tierpsy.helper.params import read_fps
@@ -26,12 +27,30 @@ REGION_LABELS = {x:ii for ii,x in enumerate(regions)}
 #make the inverse diccionary to get the name from the index
 REGION_LABELS_I = {val:key for key, val in REGION_LABELS.items()}
 
+@numba.jit
+def fillfnan(arr):
+    '''
+    fill foward nan values (iterate using the last valid nan)
+    I define this function so I do not have to call pandas DataFrame
+    '''
+    out = arr.copy()
+    for idx in range(1, out.shape[0]):
+        if np.isnan(out[idx]):
+            out[idx] = out[idx - 1]
+    return out
 
-def read_light_data(mask_file, n_sigmas=6):
+def read_light_data(mask_file, trajectories_data= None, n_sigmas=6):
     
     with tables.File(mask_file) as fid:
         mean_intensity = fid.get_node('/mean_intensity')[:]
-        timestamp = fid.get_node('/timestamp/raw')[:]
+        tot_imgs = fid.get_node('/mask').shape[0]
+        
+    #pad or eliminate elements if mean_intensity does not match the number of images
+    if tot_imgs < mean_intensity.size:
+        mean_intensity = mean_intensity[:tot_imgs]
+    elif tot_imgs > mean_intensity.size:
+        mean_intensity = np.pad(mean_intensity, (0, tot_imgs-mean_intensity.size), 'edge')
+    assert mean_intensity.size == tot_imgs
     
     med = np.median(mean_intensity)
     mad = np.median(np.abs(mean_intensity-med))
@@ -43,18 +62,23 @@ def read_light_data(mask_file, n_sigmas=6):
     # we can use 6 sigma as our threshold
     light_on = mean_intensity >  med + s*n_sigmas
     
-    #shift data to match the timestamps (deal with possible drop frames)
+    if trajectories_data is not None:
+        #fix the vector to match timestamp instead of frame number
+        equiv_ts = trajectories_data[['frame_number', 'timestamp_raw']].drop_duplicates().reset_index(drop=True)
     
-    if ~np.all(np.isnan(timestamp)) > 0:
-        timestamp = timestamp.astype(np.int)
-        max_ts = np.max(timestamp)+1
-        light_on_s = np.full(max_ts, np.nan)
-        if light_on.size < max_ts:
-            #pad if the light on vector is too small
-            light_on = np.pad(light_on, (0,max_ts-light_on.size), 'edge')
-        light_on_s[timestamp] = light_on[timestamp]
-        light_on = light_on_s
+        max_frame_number, max_timestamp = equiv_ts.max().values
+        
+        light_on_c = np.full(max_timestamp + 1, np.nan)
+        light_on_c[equiv_ts['timestamp_raw'].values] = light_on[equiv_ts['frame_number'].values]
+        
+        if max_timestamp > max_frame_number:
+            #there are drop frames I should fill this
+            #I am forcing the first frame to be 0
+            light_on_c[0] = 0
+            light_on_c = fillfnan(light_on_c)
+        light_on = light_on_c.astype(light_on.dtype)
     
+
     return light_on
 
 def get_pulses_indexes(light_on, window_size):
@@ -97,11 +121,18 @@ def read_file_data(mask_file, feat_file, min_pulse_size_s=3, _is_debug=False):
     
     fps = read_fps(mask_file)
     min_pulse_size = fps*min_pulse_size_s
-     
-    light_on = read_light_data(mask_file)
+    
+    #read features
+    with pd.HDFStore(feat_file, 'r') as fid:
+        timeseries_data = fid['/timeseries_data']
+        blob_features = fid['/blob_features']
+        trajectories_data = fid['/trajectories_data']
+    
+    
+    light_on = read_light_data(mask_file, trajectories_data)
     if np.nansum(light_on) < min_pulse_size:
         return
-        
+    
     turn_on, turn_off = get_pulses_indexes(light_on, min_pulse_size)
     region_lab = define_regions(light_on.size, turn_on, turn_off)
     region_size = np.bincount(region_lab)[1:]/fps
@@ -113,16 +144,18 @@ def read_file_data(mask_file, feat_file, min_pulse_size_s=3, _is_debug=False):
         plt.plot(turn_on, light_on[turn_on], 'o')
         plt.plot(turn_off, light_on[turn_off], 'x')
         plt.title(os.path.basename(mask_file))
-    #read features
-    with pd.HDFStore(feat_file, 'r') as fid:
-        timeseries_data = fid['/timeseries_data']
-        blob_features = fid['/blob_features']
+    
         
     timeseries_data['timestamp'] = timeseries_data['timestamp'].astype(np.int)
     #label if frame with the corresponding region
     timeseries_data['region_lab'] = region_lab[timeseries_data['timestamp']]
     
-    return timeseries_data, blob_features, fps, region_size
+    
+    with tables.File(mask_file, 'r') as fid:
+        tot_images = fid.get_node('/mask').shape[0]
+    
+    
+    return timeseries_data, blob_features, fps, region_size, tot_images, len(light_on)
 
 
 #%%
@@ -150,17 +183,22 @@ def get_exp_data(mask_dir):
     return df
    
 if __name__ == '__main__':
-    _is_debug = False
+    _is_debug = True
     
     mask_dir = '/Volumes/behavgenom_archive$/Lidia/MaskedVideos'
     exp_df = get_exp_data(mask_dir)
     
     #correct some issues
+    
     wrongly_named_stains = {'HRB222':'HBR222'}
     bad_strains = ['AZ46', 'AZ60']
-    exp_df['strain'].replace( wrongly_named_stains)
+    
+    exp_df = exp_df.replace({'strain':wrongly_named_stains})
     exp_df = exp_df[~exp_df['strain'].isin(bad_strains)]
     exp_df.index = np.arange(len(exp_df))
+    
+    exp_df['tot_images'] = np.nan
+    exp_df['tot_timestamps'] = np.nan
     
     for irow, row in exp_df.iterrows():
         print(irow+1, len(exp_df))
@@ -171,7 +209,7 @@ if __name__ == '__main__':
         if output is None:
             continue
         else:
-            timeseries_data, blob_features, fps, region_size = output
+            timeseries_data, blob_features, fps, region_size, tot_images, tot_timestamps = output
         
         exp_df.loc[irow, 'has_valid_light'] = True
         fps = read_fps(mask_file)
@@ -179,6 +217,9 @@ if __name__ == '__main__':
         #add duration of each region
         for ii, val in enumerate(region_size):
             exp_df.loc[irow, REGION_LABELS_I[ii+1]] = val
+        
+        exp_df.loc[irow, 'tot_images'] = tot_images
+        exp_df.loc[irow, 'tot_timestamps'] = tot_timestamps
         
         r_stats_l = []
         for r_lab, r_dat in timeseries_data.groupby('region_lab'):

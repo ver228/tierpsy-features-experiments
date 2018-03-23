@@ -52,27 +52,29 @@ core_feats_reduced = ['angular_velocity',
 
 
 if __name__ == "__main__":
-    is_extra_comp = True
+    is_extra_comp = False
+    pool_size = 1
+    
+    cuda_id = 1
     
     
-    cuda_id = 0
-    batch_size = 250
+    
     
     metric2exclude = 'loss'
     n_feats2remove = 'log2'
     #n_folds = 10
     #n_feats2remove = 1
     
-    pool_size = 10
-    n_epochs = 250
-    test_size = 0.2
-    experimental_dataset = 'SWDB'
-    
-    
 #    pool_size = 10
-#    n_epochs = 150
-#    test_size = 1/3
-#    experimental_dataset = 'CeNDR'
+#    train_args = dict(n_epochs = 250,  batch_size = 250,  lr = 0.01, momentum = 0.9)
+#    test_size = 0.2
+#    experimental_dataset = 'SWDB'
+    
+    
+    
+    train_args = dict(n_epochs = 150,  batch_size = 250, lr = 0.01, momentum = 0.9)
+    test_size = 1/3
+    experimental_dataset = 'CeNDR'
     
     
 #    pool_size = 15
@@ -135,6 +137,8 @@ if __name__ == "__main__":
         n_folds = 500
         if 'all' in feat_data:
             df = feat_data['tierpsy']
+            
+            #remove ventral signed columns that where not abs (This ones seemed useless...)
             v_cols = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
             v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
             v_cols = list(set(v_cols) - set(v_cols_remove))
@@ -146,7 +150,7 @@ if __name__ == "__main__":
     
     #%%
     def fold_generator():
-        fold_param = (cuda_id, n_epochs, batch_size, metric2exclude, n_feats2remove)
+        fold_param = (cuda_id, train_args, metric2exclude, n_feats2remove)
         for db_name, feats in feat_data.items():
             print(db_name)
             col_feats = [x for x in feats.columns if x not in col2ignore_r]
@@ -169,6 +173,7 @@ if __name__ == "__main__":
                 
                 
             else:
+                #deal with augmented data, we cannot select randomly we have to assign data from the same video to different videos
                 feats_r = feats.drop_duplicates('id')
                 
                 y_r = feats_r['strain_id'].values
@@ -201,8 +206,6 @@ if __name__ == "__main__":
     results += p.map(softmax_RFE, all_data_in)
     
     #%%
-    
-    
     
     save_name = '{}_RFE_SoftMax_F{}_reduced.pkl'.format(experimental_dataset, n_feats2remove)
     
