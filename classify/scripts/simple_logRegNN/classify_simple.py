@@ -10,13 +10,15 @@ from simple_trainer import TrainerSimpleNet2
 import os
 import torch
 from torch.autograd import Variable
-import pandas as pd
+import numpy as np
+import multiprocessing as mp
+import pickle
 from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
 
 import sys
 sys.path.append('../RFE_logRegNN')
 from reader import read_feats
-
+#%%
 
 save_clf_dir = './classifiers'
 _is_save_models = True
@@ -140,9 +142,7 @@ if __name__ == '__main__':
             all_data_in.append((fold_id, fold_data, fold_param))    
 
     #%%
-    import numpy as np
-    import multiprocessing as mp
-    import pickle
+    
     
     p = mp.Pool(1)
     results = p.map(softmax_clf, all_data_in)
@@ -150,6 +150,10 @@ if __name__ == '__main__':
     save_name = 'model_results_{}.pkl'.format(experimental_dataset)
     with open(save_name, "wb" ) as fid:
         pickle.dump((strain_dicts, results), fid)
+    #%%
+    save_name = 'model_results_{}.pkl'.format(experimental_dataset)
+    with open(save_name, "rb" ) as fid:
+        (strain_dicts, results) = pickle.load(fid)
     #%%
     res_db = {}
     for (set_type, i_fold), dat in results:

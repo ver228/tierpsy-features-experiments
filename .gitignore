@@ -8,3 +8,4 @@ optogenetics/results_full_hist/*
 
 optogenetics/data/*
 classify/scripts/simple_logRegNN/classifiers/*
+*.pyc

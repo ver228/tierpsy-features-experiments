@@ -119,23 +119,26 @@ if __name__ == '__main__':
      #%%       
      #I forgot to add the last feature remaining so I have to do a dirty hack 
     if os.path.basename(save_name).startswith('R_'):
-        #i forgot to add the last feature extracted...
-        feat_data, col2ignore_r = read_feats(experimental_dataset)
-        all_feats = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
-        del feat_data
+        if False:
+            #i forgot to add the last feature extracted...
+            feat_data, col2ignore_r = read_feats(experimental_dataset)
+            all_feats = [x for x in feat_data['tierpsy'].columns if x not in col2ignore_r]
+            del feat_data
+            #remove ventral signed columns that where not abs (This ones seemed useless...)
+            v_cols = [x for x in all_feats if not (('eigen' in x) or ('blob' in x))]
+            v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
+            all_feats = list(set(v_cols) - set(v_cols_remove))
+            all_feats = set(all_feats)
         
-        #remove ventral signed columns that where not abs (This ones seemed useless...)
-        v_cols = [x for x in all_feats if not (('eigen' in x) or ('blob' in x))]
-        v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
-        all_feats = list(set(v_cols) - set(v_cols_remove))
-        
-        
-        all_feats = set(all_feats)
         #%%
         feats_div = {}
         for db_name, dat in res_db.items():
             feat_orders = {}
             feats_in_all_folds, _,_, val = dat
+            
+            #I forgot to add the last feature remaining so I have to do a dirty hack 
+            # I am assuming all the features were selected at least once
+            all_feats = set(sum([x[0] for x in feats_in_all_folds],[]))
             
             feat_orders = {}
             for feats_in_fold in map(list, feats_in_all_folds):
