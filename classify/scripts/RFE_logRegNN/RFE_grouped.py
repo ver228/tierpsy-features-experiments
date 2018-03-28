@@ -169,18 +169,32 @@ if __name__ == "__main__":
 #    experimental_dataset = 'SWDB'
 #    is_expanded = True
     
+#    cuda_id = 1   
+#    n_epochs = 40
+#    test_size = 1/3
+#    experimental_dataset = 'CeNDR'
+#    is_expanded = False
+
+#    cuda_id = 1   
+#    n_epochs = 40
+#    test_size = 1/3
+#    experimental_dataset = 'MMP'
+#    is_expanded = False
+
     cuda_id = 1   
-    n_epochs = 150
+    n_epochs = 40
     test_size = 1/3
-    experimental_dataset = 'CeNDR'
-    is_expanded = True
+    experimental_dataset = 'Syngenta'
+    is_expanded = False
     
+    
+    #%%
     feat_data, col2ignore_r = read_feats(experimental_dataset)
     core_feats = get_core_features(feat_data, col2ignore_r, is_expanded)    
     
     if is_expanded:
         save_name = '{}_RFE_G_SoftMax_R_expanded.pkl'.format(experimental_dataset)
-        #%%
+        
         df = feat_data['tierpsy']
         v_cols = [x for x in df.columns if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]
         index_cols = [x for x in col2ignore_r if x in df]

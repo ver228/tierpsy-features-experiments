@@ -50,14 +50,59 @@ core_feats_reduced = ['angular_velocity',
  'width_midbody',
  'width_tail_base']
 
+#%%
+def fold_generator(fold_param):
+    
+    for db_name, feats in feat_data.items():
+        print(db_name)
+        col_feats = [x for x in feats.columns if x not in col2ignore_r]
+        
+        
+        cv = StratifiedShuffleSplit(n_splits = n_folds, test_size = test_size, random_state=777)
+        if not 'id' in feats:
+            y = feats['strain_id'].values
+            X = feats[col_feats].values
+            for i_fold, (train_index, test_index) in enumerate(cv.split(X, y)):
+                x_train, y_train  = X[train_index], y[train_index]
+                x_test, y_test  = X[test_index], y[test_index]
+                
+                fold_data = (x_train, y_train), (x_test, y_test), col_feats.copy()
+                fold_id = (db_name, i_fold)
+                
+                yield (fold_id, fold_data, fold_param)
+                
+                print(len(set(y_train)), len(set(y_test)))
+            
+            
+        else:
+            #deal with augmented data, we cannot select randomly we have to assign data from the same video to different videos
+            feats_r = feats.drop_duplicates('id')
+            
+            y_r = feats_r['strain_id'].values
+            exp_ids = feats_r['id'].values
+            for i_fold, (train_index, test_index) in enumerate(cv.split(exp_ids, y_r)):
+                good_train = feats['id'].isin(exp_ids[train_index])
+                y_train = feats.loc[good_train, 'strain_id'].values.copy()
+                x_train = feats.loc[good_train, col_feats].values.copy()
+                
+                good_test = feats['id'].isin(exp_ids[test_index])
+                y_test = feats.loc[good_test, 'strain_id'].values.copy()
+                x_test = feats.loc[good_test, col_feats].values.copy()
+                
+                
+                fold_data = (x_train, y_train), (x_test, y_test), col_feats.copy()
+                fold_id = (db_name, i_fold)
+                
+                yield (fold_id, fold_data, fold_param)
+            
+                print(len(set(y_train)), len(set(y_test)))
 
 if __name__ == "__main__":
+    is_super_reduced = True
     is_extra_comp = False
-    pool_size = 1
+    pool_size = 10
     
-    cuda_id = 1
-    
-    
+    cuda_id = 0
     
     
     metric2exclude = 'loss'
@@ -65,28 +110,29 @@ if __name__ == "__main__":
     #n_folds = 10
     #n_feats2remove = 1
     
-#    pool_size = 10
-#    train_args = dict(n_epochs = 250,  batch_size = 250,  lr = 0.01, momentum = 0.9)
-#    test_size = 0.2
-#    experimental_dataset = 'SWDB'
+    train_args = dict(n_epochs = 250,  batch_size = 250,  lr = 0.01, momentum = 0.9)
+    test_size = 0.2
+    experimental_dataset = 'SWDB'
     
-    
-    
-    train_args = dict(n_epochs = 150,  batch_size = 250, lr = 0.01, momentum = 0.9)
-    test_size = 1/3
-    experimental_dataset = 'CeNDR'
-    
-    
+#    train_args = dict(n_epochs = 40,  batch_size = 250, lr = 0.01, momentum = 0.9)
+#    test_size = 1/3
+#    experimental_dataset = 'CeNDR'
+        
 #    pool_size = 15
-#    n_epochs = 150
+#    train_args = dict(n_epochs = 40,  batch_size = 250, lr = 0.01, momentum = 0.9)
 #    test_size = 1/3
 #    experimental_dataset = 'Syngenta'
-    
+
+#    train_args = dict(n_epochs = 40,  batch_size = 250, lr = 0.01, momentum = 0.9)
+#    test_size = 1/3
+#    experimental_dataset = 'MMP'  
+
+#%%
     feat_data, col2ignore_r = read_feats(experimental_dataset)
     
-    #if 'all' in feat_data:
-    #    del feat_data['all']
-    #    del feat_data['OW']
+    if 'all' in feat_data:
+        del feat_data['all']
+        del feat_data['OW']
     
     #%%
     
@@ -133,72 +179,45 @@ if __name__ == "__main__":
             feat_data['tierpsy_no_blob_no_eigen_only_abs_no_norm'] = df_r[v_cols].copy()
             
     
+    elif is_super_reduced:
+        pool_size = 15
+        n_folds = 30#500
+        
+        df = feat_data['tierpsy']
+        #remove ventral signed columns that where not abs (This ones seemed useless...)
+        v_cols = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
+        v_cols = [x for x in v_cols if not '_w_' in x]
+        v_cols = [x for x in v_cols if not ('curvature_mean' in x) and not ('curvature_std' in x)]
+        v_cols = [x for x in v_cols if not x.endswith('1')]
+        v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
+        v_cols_c = list(set(v_cols) - set(v_cols_remove))
+        feat_data['tierpsy_super_reduced'] =  df[v_cols].copy()
+        
+        del feat_data['tierpsy']
+        
     else:
         n_folds = 500
-        if 'all' in feat_data:
-            df = feat_data['tierpsy']
-            
-            #remove ventral signed columns that where not abs (This ones seemed useless...)
-            v_cols = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
-            v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
-            v_cols = list(set(v_cols) - set(v_cols_remove))
-            
-            feat_data['tierpsy'] =  df[v_cols].copy()
-            
-            del feat_data['all']
-            del feat_data['OW']
+        df = feat_data['tierpsy']
+        #remove ventral signed columns that where not abs (This ones seemed useless...)
+        v_cols = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
+        v_cols_remove = [x.replace('_abs', '') for x in v_cols if '_abs' in x]
+        v_cols = list(set(v_cols) - set(v_cols_remove))
+    
+        feat_data['tierpsy'] =  df[v_cols].copy()
+        if experimental_dataset == 'SWDB':
+            index_cols = [x for x in col2ignore_r if x in df]
+            v_cols = [x for x in v_cols if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]    
+            feat_data['tierpsy_reduced'] = df[index_cols + v_cols].copy() #reduce to only the selected features 
     
     #%%
-    def fold_generator():
-        fold_param = (cuda_id, train_args, metric2exclude, n_feats2remove)
-        for db_name, feats in feat_data.items():
-            print(db_name)
-            col_feats = [x for x in feats.columns if x not in col2ignore_r]
-            
-            
-            cv = StratifiedShuffleSplit(n_splits = n_folds, test_size = test_size, random_state=777)
-            if not 'id' in feats:
-                y = feats['strain_id'].values
-                X = feats[col_feats].values
-                for i_fold, (train_index, test_index) in enumerate(cv.split(X, y)):
-                    x_train, y_train  = X[train_index], y[train_index]
-                    x_test, y_test  = X[test_index], y[test_index]
-                    
-                    fold_data = (x_train, y_train), (x_test, y_test), col_feats.copy()
-                    fold_id = (db_name, i_fold)
-                    
-                    yield (fold_id, fold_data, fold_param)
-                    
-                    print(len(set(y_train)), len(set(y_test)))
-                
-                
-            else:
-                #deal with augmented data, we cannot select randomly we have to assign data from the same video to different videos
-                feats_r = feats.drop_duplicates('id')
-                
-                y_r = feats_r['strain_id'].values
-                exp_ids = feats_r['id'].values
-                for i_fold, (train_index, test_index) in enumerate(cv.split(exp_ids, y_r)):
-                    good_train = feats['id'].isin(exp_ids[train_index])
-                    y_train = feats.loc[good_train, 'strain_id'].values.copy()
-                    x_train = feats.loc[good_train, col_feats].values.copy()
-                    
-                    good_test = feats['id'].isin(exp_ids[test_index])
-                    y_test = feats.loc[good_test, 'strain_id'].values.copy()
-                    x_test = feats.loc[good_test, col_feats].values.copy()
-                    
-                    
-                    fold_data = (x_train, y_train), (x_test, y_test), col_feats.copy()
-                    fold_id = (db_name, i_fold)
-                    
-                    yield (fold_id, fold_data, fold_param)
-                
-                    print(len(set(y_train)), len(set(y_test)))
+    
+    fold_param = (cuda_id, train_args, metric2exclude, n_feats2remove)
+    gen = fold_generator(fold_param)
     #%%
     all_data_in = []
     results = []
     p = mp.Pool(pool_size)
-    for gen in iter(fold_generator()):
+    for gen in iter(gen):
         all_data_in.append(gen)
         if len(all_data_in) == pool_size:
             results += p.map(softmax_RFE, all_data_in)
@@ -211,6 +230,12 @@ if __name__ == "__main__":
     
     if not is_extra_comp:
         save_name = 'R_' + save_name
+        
+    if is_super_reduced:
+        all_feats = [x for x in feat_data['tierpsy_super_reduced'].columns if not x in col2ignore_r ]
+        save_name = 'RSuper_' + save_name
+        results = (all_feats, results)
+    
     with open(save_name, "wb" ) as fid:
         pickle.dump(results, fid)
     #%%

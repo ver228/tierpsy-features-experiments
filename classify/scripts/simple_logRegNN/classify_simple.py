@@ -67,20 +67,24 @@ def softmax_clf(data_in):
 #%%    
 if __name__ == '__main__':
     pool_size = 10
-    cuda_id = 1
+    cuda_id = 0
     
 #    train_args = dict(n_epochs = 250,  batch_size = 250, lr = 0.01, momentum = 0.9)
 #    test_size = 0.2
 #    experimental_dataset = 'SWDB'
     
-    
+#    test_size = 1/3
+#    experimental_dataset = 'CeNDR'
+#    train_args = dict(n_epochs = 150,  batch_size = 250,  lr = 0.01, momentum = 0.9)
+
     test_size = 1/3
-    experimental_dataset = 'CeNDR'
-    train_args = dict(n_epochs = 150,  batch_size = 250,  lr = 0.01, momentum = 0.9)
+    experimental_dataset = 'MMP'
+    train_args = dict(n_epochs = 40,  batch_size = 150,  lr = 0.01, momentum = 0.9)
+
     
-#    n_epochs = 150
 #    test_size = 1/3
 #    experimental_dataset = 'Syngenta'
+    
     
     feat_data, col2ignore_r = read_feats(experimental_dataset)
     if 'all' in feat_data:
@@ -142,9 +146,7 @@ if __name__ == '__main__':
             all_data_in.append((fold_id, fold_data, fold_param))    
 
     #%%
-    
-    
-    p = mp.Pool(1)
+    p = mp.Pool(pool_size)
     results = p.map(softmax_clf, all_data_in)
     #%%
     save_name = 'model_results_{}.pkl'.format(experimental_dataset)

@@ -106,9 +106,11 @@ if __name__ == '__main__':
     #exp_set_dir = '/Volumes/behavgenom_archive$/Avelino/screening/CeNDR'
     #save_name_f = 'tierspy_features_augmented_CeNDR.csv'
     
-    exp_set_dir = '/Volumes/behavgenom_archive$/Adam/screening/Syngenta/'
-    save_name_f = 'tierspy_features_augmented_Syngenta.csv'
+#    exp_set_dir = '/Volumes/behavgenom_archive$/Adam/screening/Syngenta/'
+#    save_name_f = 'tierspy_features_augmented_Syngenta.csv'
     
+    exp_set_dir = '/Volumes/behavgenom_archive$/Avelino/screening/MMP'
+    save_name_f = 'tierspy_features_augmented_MMP.csv'
     n_batch = 20
     
     n_folds = 20

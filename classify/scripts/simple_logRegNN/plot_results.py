@@ -12,6 +12,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 import itertools
 import matplotlib.pylab as plt
+import pandas as pd
 
 def plot_confusion_matrix(cm, classes,
                       normalize=True,
@@ -19,7 +20,7 @@ def plot_confusion_matrix(cm, classes,
     """
     This function prints and plots the confusion matrix.
     """
-    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    
     
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     
@@ -29,19 +30,22 @@ def plot_confusion_matrix(cm, classes,
     plt.xticks(tick_marks, classes, rotation=90)
     plt.yticks(tick_marks, classes)
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+
+    if False:
+        fmt = '.2f' if normalize else 'd'
+        thresh = cm.max() / 2.
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            plt.text(j, i, format(cm[i, j], fmt),
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
     plt.ylabel('True label', fontsize=14)
     plt.xlabel('Predicted label', fontsize=14)
 #%%
 if __name__ == '__main__':
-    experimental_dataset = 'CeNDR'
+    #experimental_dataset = 'CeNDR'
+    experimental_dataset = 'SWDB'
     save_name = 'model_results_{}.pkl'.format(experimental_dataset)
     with open(save_name, "rb" ) as fid:
         strain_dict, results = pickle.load(fid)
@@ -73,26 +77,38 @@ if __name__ == '__main__':
     
     #%%
     
-    plt.figure(figsize=(12,6))
     
     #ss_titles = {'all': 'All Features', 'motion':'Coarse-Grain Features'}
     ss_titles = {'all': 'All Features', 'reduced':'Reduced Set of Features'}
-    for ii, set_type in enumerate(['reduced', 'all']):
+    
+    
+    _, s_sorted = zip(*sorted(strain_dict.items(), key=lambda x : x[0]))
+    
+    ss = ['all']#['reduced', 'all']
+    for ii, set_type in enumerate(ss):
         y_pred = np.concatenate(res_db[set_type][-1])
         y_true = np.concatenate(res_db[set_type][-2])
         #np.concatenate(y_true)
         cm = confusion_matrix(y_true, y_pred)
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         
-        plt.subplot(1,2,ii+1)
-        plot_confusion_matrix(cm, strain_dict, 
-                              normalize = True, 
-                              #cmap = plt.cm.inferno_r)
-                              #cmap = plt.cm.plasma_r)
-                              #cmap = plt.cm.viridis_r)
-                              cmap = plt.cm.magma_r)
+        #%%
+        cm_df = pd.DataFrame(cm, index=s_sorted, columns=s_sorted)
+        #%%
         
         
-        plt.title(ss_titles[set_type], fontsize=16)
-    plt.tight_layout()
-    plt.savefig('confusion_matrix.pdf')
         
+#        #plt.subplot(1,2,ii+1)
+#        plt.figure(figsize=(60,50))
+#        plot_confusion_matrix(cm, s_sorted, 
+#                              normalize = True, 
+#                              #cmap = plt.cm.inferno_r)
+#                              #cmap = plt.cm.plasma_r)
+#                              #cmap = plt.cm.viridis_r)
+#                              cmap = plt.cm.magma_r)
+#        
+#        
+#        plt.title(ss_titles[set_type], fontsize=5)
+#    plt.tight_layout()
+#    plt.savefig('{}_confusion_matrix.pdf'.format(experimental_dataset))
+#        

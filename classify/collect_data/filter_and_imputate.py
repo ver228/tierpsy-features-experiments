@@ -6,12 +6,9 @@ Created on Thu Oct 19 14:20:36 2017
 @author: ajaver
 """
 import os
-import matplotlib.pylab as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import f_oneway
-from functools import partial
-import multiprocessing as mp
 
 #col2ignore = ['Unnamed: 0', 'id', 'directory', 'base_name', 'exp_name']
 col2ignore = ['Unnamed: 0', 'exp_name', 'id', 'base_name', 'date', 
@@ -38,6 +35,12 @@ def _get_args(set_type):
                 'tierpsy' :'tierpsy_features_full_CeNDR.csv',
                 'tierpsy_augmented' : 'tierspy_features_augmented_CeNDR.csv'
                 }
+    elif set_type == 'MMP':
+        MIN_N_VIDEOS = 3
+        save_dir = os.path.join(MAIN_DIR, 'MMP/')
+        feat_files = {
+                'tierpsy_augmented' : 'tierspy_features_augmented_MMP.csv'
+                }
     elif set_type == 'SWDB':
         MIN_N_VIDEOS = 10
         save_dir = os.path.join(MAIN_DIR, 'SWDB/')
@@ -45,7 +48,13 @@ def _get_args(set_type):
                 'OW' : 'ow_features_full_SWDB.csv',
                 'tierpsy' : 'tierpsy_features_full_SWDB.csv'
                 }
-        
+    elif set_type == 'Agging':
+        MIN_N_VIDEOS = 10
+        save_dir = os.path.join(MAIN_DIR, 'SWDB/')
+        feat_files = {
+                'OW' : 'ow_features_full_SWDB.csv',
+                'tierpsy' : 'tierpsy_features_full_SWDB.csv'
+                }    
     elif set_type == 'Syngenta':
         MIN_N_VIDEOS = 3
         save_dir = os.path.join(MAIN_DIR, 'Syngenta/')
@@ -54,25 +63,14 @@ def _get_args(set_type):
                 }
     return MIN_N_VIDEOS, save_dir, feat_files
 
-def _h_ftest(columns, feats_g):
-    all_f = []
-    print(len(columns))
-    for col in columns:
-        
-        dat = [s_dat[col].values for s, s_dat in feats_g]
-        dat = [x for x in dat if ~np.all(np.isnan(x))]
-        
-        
-        fstats, pvalue = f_oneway(*dat)
-        if ~np.isnan(pvalue):
-            all_f.append((col, fstats, pvalue))
-    return all_f
 #%%
 if __name__ == '__main__':
     MAX_FRAC_NAN = 0.025
     #MAX_FRAC_NAN = 0.05
-    experimental_dataset = 'Syngenta'
+    #experimental_dataset = 'MMP'
+    #experimental_dataset = 'Syngenta'
     #experimental_dataset = 'SWDB'
+    experimental_dataset = 'Agging'
     #experimental_dataset = 'CeNDR'
     
     MIN_N_VIDEOS, save_dir, feat_files = _get_args(experimental_dataset)
@@ -84,7 +82,7 @@ if __name__ == '__main__':
         print(db_name)
         feats = pd.read_csv(save_dir + feat_file)
         
-        if 'Syngenta':
+        if experimental_dataset == 'Syngenta':
             feats['strain'] = feats['base_name'].apply(lambda x : '_'.join(x.split('_')[2:4]))
         
         dd = feats.isnull().mean()
@@ -95,18 +93,19 @@ if __name__ == '__main__':
         
         print(db_name)
         print(col2remove)
-        
-    
-    #%%
+       #%%
     if 'OW' in all_features:
         #make sure the same videos are selected in OW and tierpsy
         assert (all_features['OW']['base_name'].values == all_features['tierpsy']['base_name'].values).all()
     
-    
+    #%%
     val = next(iter(all_features.values()))
+    #deal with augmented datset
+    if 'id' in val:
+        val = val.drop_duplicates('id')
     dd = val['strain'].value_counts()
     good_strains = dd.index[(dd>=MIN_N_VIDEOS).values].values
-    
+    #%%
     for db_name, feats in all_features.items():
         feats = feats[feats['strain'].isin(good_strains)]
         #Imputate missing values. I am using the global median to be more conservative
@@ -130,6 +129,11 @@ if __name__ == '__main__':
     for db_name, feats in all_features.items():
         bn = feat_files[db_name]
         fname = os.path.join(save_dir, 'F{:.3}_{}'.format(MAX_FRAC_NAN, bn))
+        
+        #check there is not any nan
+        
+        feat_cols = [x for x in feats.columns if x not in col2ignore]
+        assert not feats[feat_cols].isnull().any().any()
         feats.to_csv(fname)
     
     

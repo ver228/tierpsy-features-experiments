@@ -13,9 +13,12 @@ import pandas as pd
 
 
 if __name__ == '__main__':
-    #save_name = 'CeNDR_RFE_G_SoftMax_R.pkl'
-    save_name = 'SWDB_RFE_G_SoftMax_R.pkl'
-    #save_name = 'RFE_G_SoftMax_R_expanded.pkl'
+    #save_name = './results_data/MMP_RFE_G_SoftMax_R.pkl'
+    save_name = './results_data/Syngenta_RFE_G_SoftMax_R.pkl'
+    #save_name = './results_data/CeNDR_RFE_G_SoftMax_R.pkl'
+    #save_name = './results_data/SWDB_RFE_G_SoftMax_R.pkl'
+    #save_name = './results_data/SWDB_RFE_G_SoftMax_R_expanded.pkl'
+    #save_name = './results_data/CeNDR_RFE_G_SoftMax_R_expanded.pkl'
     #%%
     with open(save_name, "rb" ) as fid:
         results = pickle.load(fid)
@@ -79,11 +82,16 @@ if __name__ == '__main__':
         
         th = yy[max_ind] - err[max_ind]
         #th = yy[ind]
-        max_err_ind = np.where(yy >= th)[0][-1]
-        
+        better_ind, =np.where(yy >= th)
+        max_err_ind = better_ind[-1]
+        min_err_ind = better_ind[0]
         
         x_t = xx[max_err_ind]
         plt.plot((x_t, x_t), plt.ylim())
+        
+        x_t = xx[min_err_ind]
+        plt.plot((x_t, x_t), plt.ylim())
+        
         
         print(db_name, x_t, yy[max_err_ind], yy.max())
         
@@ -103,17 +111,18 @@ if __name__ == '__main__':
         df = pd.DataFrame(np.array(order_vals), index=feats)
         df_m = df.median(axis=1).sort_values()
         
-        feats_div[db_name] = (df_m, max_err_ind, max_ind)
+        feats_div[db_name] = (df_m, max_err_ind, min_err_ind, max_ind)
         #feats_div[db_name] = (useless_feats, usefull_feats)
     #%%
     
     #useless_feats, usefull_feats = feats_div['all_ow']
     #df_m, max_err_ind, max_ind = feats_div['all_ow']
-    df_m, max_err_ind, max_ind = feats_div['tierpsy_no_blob_no_eigen']
+    df_m, max_err_ind, min_err_ind, max_ind = feats_div['tierpsy_no_blob_no_eigen']
     #df_m, max_err_ind, max_ind = feats_div['tierpsy']
     
-    useless_feats = df_m.index[:max_err_ind]
-    usefull_feats = df_m.index[max_err_ind:]
+    useless_feats = df_m.index[:min_err_ind]
+    mediocre_feats = df_m.index[min_err_ind:max_ind]
+    usefull_feats = df_m.index[max_ind:]
     
     #useless_feats = df_m.index[:max_ind]
     #usefull_feats = df_m.index[max_ind:]

@@ -39,7 +39,7 @@ def read_tierpsy_feats(experiments_df):
     #all_stats = list(map(_tierpsy_process_row, experiments_df.iterrows()))
     
     all_stats = [x for x in all_stats if x is not None]
-    all_stats = pd.concat(all_stats, axis=1).T
+    all_stats = pd.concat(all_stats, axis=1, verify_integrity=True).T
     all_stats.index = all_stats['experiment_id']
     
     return all_stats
@@ -60,8 +60,6 @@ def _ow_process_row(data_in):
     
 def read_ow_feats(experiments_df):
     
-    
-    
     p = mp.Pool(n_batch)
     all_stats = list(p.map(_ow_process_row, experiments_df.iterrows()))
     #all_stats = list(map(_tierpsy_process_row, experiments_df.iterrows()))
@@ -81,7 +79,6 @@ def get_SWDB_feats(save_dir = './'):
     CONCAT(results_dir, '/', base_name, '_skeletons.hdf5') AS skel_file,
     n_valid_skeletons/(total_time*fps) AS frac_valid
     FROM experiments_full AS e
-    JOIN results_summary ON e.id = experiment_id
     WHERE total_time < 905
     AND total_time > 295
     AND strain != '-N/A-'
@@ -95,6 +92,8 @@ def get_SWDB_feats(save_dir = './'):
     experiments_df = experiments_df.rename(columns={'results_dir':'directory'})
     experiments_df.index = experiments_df['id']
 
+    experiments_df = experiments_df[:10]
+    
     tierpsy_feats_f = read_tierpsy_feats(experiments_df)
     del tierpsy_feats_f['experiment_id']
     save_name = os.path.join(save_dir, 'tierpsy_features_full_SWDB.csv')
@@ -107,6 +106,40 @@ def get_SWDB_feats(save_dir = './'):
 #    dd = experiments_df.join(ow_feats_f)
 #    dd.to_csv(save_name, index_label=False)
 
+def get_Agging_feats(save_dir = './'):
+    conn = pymysql.connect(host='localhost', database='single_worm_db')
+
+    sql = '''
+    SELECT *, 
+    CONCAT(results_dir, '/', base_name, '_skeletons.hdf5') AS skel_file,
+    n_valid_skeletons/(total_time*fps) AS frac_valid
+    FROM experiments_full AS e
+    WHERE total_time < 905
+    AND total_time > 295
+    AND strain != '-N/A-'
+    AND exit_flag = 'END'
+    AND n_valid_skeletons > 120*fps
+    AND experimenter = "Celine N. Martineau, Bora Baskaner"
+    '''
+    #ingnore Celine's data for this dataset
+    
+    experiments_df = pd.read_sql(sql, con=conn)
+    experiments_df = experiments_df.rename(columns={'results_dir':'directory'})
+    experiments_df.index = experiments_df['id']
+    
+    
+    
+    tierpsy_feats_f = read_tierpsy_feats(experiments_df)
+    del tierpsy_feats_f['experiment_id']
+    save_name = os.path.join(save_dir, 'tierpsy_features_full_Agging.csv')
+    dd = experiments_df.join(tierpsy_feats_f)
+    dd.to_csv(save_name, index_label=False)
+    
+#    ow_feats_f = read_ow_feats(experiments_df)
+#    del ow_feats_f['experiment_id']
+#    save_name = os.path.join(save_dir, 'ow_features_full_Agging.csv')
+#    dd = experiments_df.join(ow_feats_f)
+#    dd.to_csv(save_name, index_label=False)
 
 def get_CeNDR_feats(save_dir = './'):
     #sys.path.append('/Users/ajaver/Documents/GitHub/process-rig-data/process_files')
@@ -146,7 +179,8 @@ def get_CeNDR_feats(save_dir = './'):
     return experiments_df
 
 if __name__ == '__main__':
-    get_SWDB_feats()
+    get_Agging_feats('../data')
+    #get_SWDB_feats()
     #get_CeNDR_feats()
     
     

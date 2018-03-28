@@ -66,6 +66,10 @@ def read_feats(experimental_dataset = 'SWDB'):
         dd = feats[col_val]
         z = (dd-dd.mean())/(dd.std())
         feats[col_val] = z
+
+        #drop in case there is any nan
+        feats = feats.dropna(axis=1)
+
         feat_data[db_name] = feats
     
     return feat_data, col2ignore_r

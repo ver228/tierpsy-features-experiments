@@ -15,11 +15,13 @@ from reader import read_feats
 
 
 if __name__ == '__main__':
-    with open('reduced_feats_SWDB.txt', 'r') as fid:
-        reduced_cols= fid.read().split('\n')    #experimental_dataset = 'CeNDR'
+    is_reduced = True
     
+    if is_reduced:
+        with open('reduced_feats_SWDB.txt', 'r') as fid:
+            feat_cols= fid.read().split('\n')    #experimental_dataset = 'CeNDR'
     
-    for experimental_dataset in ['CeNDR', 'SWDB', 'Syngenta']:
+    for experimental_dataset in ['SWDB', 'Syngenta', 'CeNDR']:
         feat_data, col2ignore_r = read_feats(experimental_dataset)
         if 'all' in feat_data:
             del feat_data['all']
@@ -29,10 +31,10 @@ if __name__ == '__main__':
         feats = feat_data['tierpsy']
         group_s = 'strain_description' if 'strain_description' in feats else 'strain'
         
-        rr = [x for x in reduced_cols if x in feats] 
+        rr = [x for x in feat_cols if x in feats] 
         feats = feats[rr + [group_s]]
         df = feats.groupby(group_s).agg('mean')
         
-        ss = sns.clustermap(df, method = 'ward', figsize=(60, 70))
+        g = sns.clustermap(df, method = 'ward', figsize=(60, 70))
         
-        ss.savefig('Clustogram_{}.pdf'.format(experimental_dataset))
+        g.savefig('Clustogram_{}.pdf'.format(experimental_dataset))
