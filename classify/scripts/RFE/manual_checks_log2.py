@@ -10,10 +10,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
 import os
+
+import sys
+sys.path.append('../../helper')
 from reader import read_feats
-
-#%%
-
+from misc import results_root_dir
 
 if __name__ == '__main__':
     experimental_dataset = 'SWDB'
@@ -21,10 +22,12 @@ if __name__ == '__main__':
     #experimental_dataset = 'CeNDR'
     #experimental_dataset = 'MMP'
     
-    fnames = os.listdir('./results_data/')
+    results_dir = os.path.join(results_root_dir, 'RFE')
+    fnames = os.listdir(results_dir)
     
-    #save_name = './results_data/{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
-    save_name = './results_data/R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    bn = '{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    #bn = 'R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    save_name = os.path.join(results_dir, bn)
     
     
     #save_name = 'SyngentaLabeled.pkl'
@@ -186,7 +189,9 @@ if __name__ == '__main__':
         
         df_m = feats_div[key]
         reduced_feats = df_m.index[df_m<=512]
-        with open('reduced_feats_{}.txt'.format(experimental_dataset), 'w') as fid:
+        
+        fname = os.path.join(results_dir, 'reduced_feats_{}.txt'.format(experimental_dataset))
+        with open(fname, 'w') as fid:
             ss = '\n'.join(reduced_feats)
             fid.write(ss)
             #%%
