@@ -15,31 +15,14 @@ import sys
 sys.path.append('../../helper')
 from reader import read_feats
 from misc import results_root_dir
-
-
-top16_manual = [
-    'length_90th',
-     'width_midbody_norm_10th',
-     'curvature_hips_abs_90th',
-     'curvature_head_abs_90th',
-     'motion_mode_paused_fraction',
-     'motion_mode_paused_frequency',
-     'd_curvature_hips_abs_90th',
-     'd_curvature_head_abs_90th',
-     
-     
-     'width_head_base_norm_10th',
-     'motion_mode_backward_frequency',
-     'quirkiness_50th',
-     'minor_axis_50th',
-     
-     'curvature_midbody_norm_abs_50th',
-     'relative_to_hips_radial_velocity_tail_tip_50th',
-     'relative_to_head_base_radial_velocity_head_tip_50th',
-     'relative_to_head_base_angular_velocity_head_tip_abs_90th'                   
-    
-     ]
-
+#%%
+feat_props = {
+     'length_90th' : ('Length $90^{th}$ ($\mu m$)', (500, 1400)),
+     'curvature_hips_abs_90th' : ('Absolute Curvature Hips $90^{th}$ ($rad \cdot \mu m^{-1}$)', (0.0018, 0.0132)),
+     'motion_mode_paused_fraction' : ('Fraction of Motion Paused', (-0.025, 1.025)),
+     'd_curvature_hips_abs_90th' : ('Derivate of Absolute Hips Curvature $90^{th}$\n ($rad \cdot \mu m^{-1} \cdot s^{-1}$)', (0.0, 0.025)),
+     }
+#%%
 if __name__ == '__main__':
     experimental_dataset = 'SWDB'
     feat_data, col2ignore_r = read_feats(experimental_dataset, z_transform = False)
@@ -78,25 +61,23 @@ if __name__ == '__main__':
           'C. elegans Wild Isolate (Merlet, France)'
           ]
     )
-    
+    #%%
     results_dir = os.path.join(results_root_dir, 'clustograms')
     for s_type, strains2check in strain_sets.items():
-        
-        fname = os.path.join(results_dir, 'boxplot_{}.pdf'.format(s_type))
-                
-        with PdfPages(fname) as fid:
-            print(fname)
-            print(strains2check)
-            df_s = df.loc[df['strain_description'].isin(strains2check)]
-            for feat in top16_manual:
-                #%%
-                fig = plt.figure(figsize=(5, 3))
-                
-                fig, ax = plt.subplots(1, 1, figsize = (5, 3))
+        df_s = df.loc[df['strain_description'].isin(strains2check)]
+        for feat, (s_xlabel, s_xlim) in feat_props.items():
+            
+            fig = plt.figure(figsize=(5, 3))
+            
+            fig, ax = plt.subplots(1, 1, figsize = (4, 3.5))
 
-                g = sns.boxplot(y = 'strain_description', x = feat, data = df_s, order=strains2check)
-                ax.set_ylabel('')  
-                #%%
-                fid.savefig(fig, bbox_inches="tight")
-                
-                plt.close(fig)
+            g = sns.boxplot(y = 'strain_description', x = feat, data = df_s, order=strains2check)
+            ax.set_ylabel('')  
+            ax.set_xlabel(s_xlabel)  
+            ax.set_xlim(s_xlim)
+            
+            
+            fname = 'boxplot_{}_{}.pdf'.format(s_type, feat)
+            fname = os.path.join(results_dir, fname)
+            fig.savefig(fname, bbox_inches="tight")
+              

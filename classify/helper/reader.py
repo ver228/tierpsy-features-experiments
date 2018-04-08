@@ -32,10 +32,32 @@ def read_feats(experimental_dataset = 'SWDB', z_transform = True):
         s_dict = {s:ii for ii,s in enumerate(ss)}
         feats['strain_id'] = feats['strain'].map(s_dict)
         
+        
+            
         #maybe i should divided it in train and test, but cross validation should be enough...
         feats['set_type'] = ''
         feat_data[db_name] = feats
+    
+    if experimental_dataset == 'SWDB':
+        #dirty fix for incorrectly named strains
         
+        for db_name, df in feat_data.items():
+            b1 = df.index[~df['base_name'].str.contains('N2 ') & (df['strain'] == 'N2')]
+            
+            #i didn't want to include males at this point neither...
+            b2 = df.index[df['sex'] == 'male']
+            
+            #those are really to big to be worms and seems to be an error in the DB
+            b3 = df.index[df['id'].isin([87, 14511, 14513, 14514, 14515, 14516, 
+                          14517, 14518, 14519, 14520, 14521, 14524, 14525, 14526, 
+                          14527, 14528, 14529, 14531, 14532, 14534, 14536, 14537, 
+                          14679, 14680, 14681, 14682, 14683, 14684, 14686, 14687, 
+                          14688, 14690, 14691, 14692, 14693, 14694, 14697])]
+            
+            bad_index = np.concatenate((b1, b2, b3))
+            
+            feat_data[db_name] = df.drop(bad_index)
+    
     col2ignore_r = col2ignore + ['strain_id', 'set_type']
     
     if 'OW' in feat_data:
