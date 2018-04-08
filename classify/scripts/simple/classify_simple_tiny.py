@@ -131,12 +131,64 @@ cols_types = dict(
      'relative_to_head_base_angular_velocity_head_tip_abs_90th'                   
     
      ],
+            
+    top16_manual_nonorm = [
+    'length_90th',
+     'width_midbody_50th',
+     'curvature_hips_abs_90th',
+     'curvature_head_abs_90th',
+     'motion_mode_paused_fraction',
+     'motion_mode_paused_frequency',
+     'd_curvature_hips_abs_90th',
+     'd_curvature_head_abs_90th',
+     
+     
+     'width_head_base_10th',
+     'motion_mode_backward_frequency',
+     'quirkiness_50th',
+     'minor_axis_50th',
+     
+     'curvature_midbody_abs_50th',
+     'relative_to_hips_radial_velocity_tail_tip_50th',
+     'relative_to_head_base_radial_velocity_head_tip_50th',
+     'relative_to_head_base_angular_velocity_head_tip_abs_90th'                   
+    
+     ],
+            
+    top16_manual_cluster = [
+     'length_50th',
+     'width_midbody_IQR',
+     
+     'curvature_hips_abs_90th',
+     'curvature_head_abs_90th',
+     
+     'motion_mode_paused_fraction',
+     'motion_mode_paused_frequency',
+     
+     'd_curvature_hips_abs_90th',
+     'd_curvature_head_abs_90th',
+     
+     'd_curvature_midbody_abs_50th',
+     'motion_mode_forward_frequency',
+     'quirkiness_50th',
+     'minor_axis_50th',
+     
+     'd_speed_10th', #'d_length_10th', 'relative_to_tail_base_radial_velocity_tail_tip_10th'
+     'speed_10th',
+     'speed_90th',
+     'motion_mode_backward_duration_50th' 
+     ]
     )
 #%%    
 if __name__ == '__main__':
+    
     pool_size = 15
+    
     #cuda_id = 0
     cuda_id = None
+    
+    if cuda_id is None:
+        pool_size = 1 
     
     train_args = dict(n_epochs = 250,  batch_size = 250, lr = 0.01, momentum = 0.9)
     test_size = 0.2

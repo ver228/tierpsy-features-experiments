@@ -6,9 +6,11 @@ Created on Thu Feb 22 12:07:50 2018
 @author: ajaver
 """
 import os
-import matplotlib.pylab as plt
+
 import seaborn as sns
 import sys
+import matplotlib.pylab as plt
+
 sys.path.append('../../helper')
 from misc import results_root_dir
 from reader import read_feats
@@ -44,20 +46,18 @@ if __name__ == '__main__':
     if 'all' in feat_data:
         del feat_data['all']
         del feat_data['OW']
-    
+    feats = feat_data['tierpsy']
+    #%%
     for ii in [8, 16]:
-        #%%
         feat_cols = top16_manual[:ii]
-        
-        feats = feat_data['tierpsy']
         
         group_s = 'strain_description'
         rr = [x for x in feat_cols if x in feats] 
         feats = feats[rr + [group_s]]
         df = feats.groupby(group_s).agg('mean')
         
-        g = sns.clustermap(df, method = 'ward', figsize=(ii//2, 25), robust=True)
-        plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0, fontsize=4)
+        g = sns.clustermap(df, method = 'ward', figsize=(ii//2, 100), robust=True)
+        plt.setp(g.ax_heatmap.yaxis.get_majorticklabels(), rotation=0, fontsize=10)
         
         dd = os.path.join(results_dir, 'Clustogram_{}_top{}.pdf'.format(experimental_dataset, ii))
-        g.savefig(dd)
+        g.savefig(dd, bbox_inches="tight")

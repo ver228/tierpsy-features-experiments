@@ -1,5 +1,8 @@
-data_root_dir = '/Users/ajaver/OneDrive - Imperial College London/tierpsy_features_experiments/classify/data'
-results_root_dir = '/Users/ajaver/OneDrive - Imperial College London/tierpsy_features_experiments/classify/results'
+import os
+
+root_dir = os.path.join(os.environ['HOME'], 'OneDrive - Imperial College London')
+data_root_dir = os.path.join(root_dir, 'tierpsy_features_experiments/classify/data')
+results_root_dir = os.path.join(root_dir, 'tierpsy_features_experiments/classify/results')
 
 col2ignore = ['Unnamed: 0', 'exp_name', 'id', 'base_name', 
               'date', 'worm_id', 'days_of_adulthood',

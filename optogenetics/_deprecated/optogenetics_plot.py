@@ -5,7 +5,7 @@ Created on Tue Feb 13 18:57:32 2018
 
 @author: ajaver
 """
-
+import os
 import pandas as pd
 import tables
 import matplotlib.pylab as plt
@@ -31,8 +31,13 @@ import numpy as np
 #'curvature_midbody'
 #
 #curvature_head_10th
+
+data_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/data/'
 if __name__ == '__main__':
-    exp_df_l = pd.read_csv('exp_info.csv', index_col=0)
+    
+    
+    fname = os.path.join(data_dir, 'exp_info.csv')
+    exp_df_l = pd.read_csv(fname, index_col=0)
     #exp_df_l = exp_df_l[~exp_df_l['day'].isin(['day1'])] 
     exp_df_l = exp_df_l[exp_df_l['day'] != 'day1']#day1 is likely to have problems
     

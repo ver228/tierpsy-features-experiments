@@ -11,7 +11,7 @@ import numpy as np
 
 from misc import data_root_dir, col2ignore
 
-def read_feats(experimental_dataset = 'SWDB'):
+def read_feats(experimental_dataset = 'SWDB', z_transform = True):
     save_dir = os.path.join(data_root_dir, experimental_dataset)
     if experimental_dataset == 'SWDB':
         feat_files = {
@@ -46,17 +46,18 @@ def read_feats(experimental_dataset = 'SWDB'):
         feats.columns = [x if x == 'base_name' else 'ow_' + x for x in feats.columns]
         feat_data['all'] = feat_data['tierpsy'].merge(feats, on='base_name')
     
-    # scale data (z-transform)
-    for db_name, feats in feat_data.items(): 
-        col_val = [x for x in feats.columns if x not in col2ignore_r]
-        dd = feats[col_val]
-        z = (dd-dd.mean())/(dd.std())
-        feats[col_val] = z
-
-        #drop in case there is any nan
-        feats = feats.dropna(axis=1)
-
-        feat_data[db_name] = feats
+    if z_transform:
+        # scale data (z-transform)
+        for db_name, feats in feat_data.items(): 
+            col_val = [x for x in feats.columns if x not in col2ignore_r]
+            dd = feats[col_val]
+            z = (dd-dd.mean())/(dd.std())
+            feats[col_val] = z
+    
+            #drop in case there is any nan
+            feats = feats.dropna(axis=1)
+    
+            feat_data[db_name] = feats
     
     return feat_data, col2ignore_r
 
