@@ -101,9 +101,12 @@ def fold_generator(fold_param):
                 print(len(set(y_train)), len(set(y_test)))
 
 if __name__ == "__main__":
-    is_super_reduced = True
-    is_extra_comp = False
-    pool_size = 10
+    #is_super_reduced = False
+    is_extra_comp = True
+    
+    is_extra_comp_less = True
+    
+    pool_size = 2#10
     
     cuda_id = None#0
     
@@ -133,9 +136,6 @@ if __name__ == "__main__":
 #%%
     feat_data, col2ignore_r = read_feats(experimental_dataset)
     
-    if 'all' in feat_data:
-        del feat_data['all']
-        del feat_data['OW']
     
     #%%
     
@@ -182,7 +182,15 @@ if __name__ == "__main__":
             feat_data['tierpsy_no_blob_no_eigen_only_abs_no_norm'] = df_r[v_cols].copy()
             
     
+        #if is_extra_comp_less:
+        #   feat_data = {k:feat_data[k] for k in ['tierpsy', 'OW', 'all', 'tierpsy_no_blob_no_eigen_only_abs']}
+    
     elif is_super_reduced:
+        
+        if 'all' in feat_data:
+            del feat_data['all']
+            del feat_data['OW']
+        
         pool_size = 15
         n_folds = 30#500
         
@@ -198,6 +206,7 @@ if __name__ == "__main__":
         
         del feat_data['tierpsy']
         
+    
     else:
         n_folds = 500
         df = feat_data['tierpsy']
@@ -212,6 +221,7 @@ if __name__ == "__main__":
             v_cols = [x for x in v_cols if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]    
             feat_data['tierpsy_reduced'] = df[index_cols + v_cols].copy() #reduce to only the selected features 
     
+
     #%%
     
     fold_param = (cuda_id, train_args, metric2exclude, n_feats2remove)

@@ -23,9 +23,15 @@ if __name__ == '__main__':
     #experimental_dataset = 'MMP'
     
     results_dir = os.path.join(results_root_dir, 'RFE')
+    
+    save_dir  = os.path.join(results_dir, 'figs')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
     fnames = os.listdir(results_dir)
     
-    bn = '{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    bn = 'F_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
+    #bn = '{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
     #bn = 'R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
     save_name = os.path.join(results_dir, bn)
     
@@ -74,7 +80,7 @@ if __name__ == '__main__':
     plt.legend()
     #%%
     
-    key = 'tierpsy'#'all' if 'all' in res_db else 'tierpsy'
+    key = 'all' if 'all' in res_db else 'tierpsy'
     
     feats, _,_, val = res_db[key]
     
@@ -112,11 +118,16 @@ if __name__ == '__main__':
         
         x_t = xx[min_ind]
         plt.plot((x_t, x_t), plt.ylim())
+        plt.xlabel('Number of Features')
+        plt.ylabel('Accuray')
         
         print(db_name, x_t, yy[min_ind], yy.max())
         
         plt.title(db_name)
         
+        
+        ff = os.path.join(save_dir, '{}_{}.pdf'.format(experimental_dataset, db_name))
+        plt.savefig(ff)
      #%%       
      #I forgot to add the last feature remaining so I have to do a dirty hack 
     if os.path.basename(save_name).startswith('R_'):

@@ -7,24 +7,28 @@ Created on Thu Feb 22 10:58:24 2018
 """
 import pickle
 import numpy as np
-import pandas as pd
 import matplotlib.pylab as plt
 import os
+
+
+import sys
+sys.path.append('../../helper')
 from reader import read_feats
+from misc import results_root_dir
 
 #%%
 
 
 if __name__ == '__main__':
+    results_dir = os.path.join(results_root_dir, 'RFE')
+    
     experimental_dataset = 'SWDB'
     #experimental_dataset = 'Syngenta'
     #experimental_dataset = 'CeNDR'
     #experimental_dataset = 'MMP'
     
-    fnames = os.listdir('./results_data/')
-    
-    save_name = './results_data/R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
-    save_name_rs = './results_data/RSuper_R_{}_RFE_SoftMax_Flog2_reduced_v1.pkl'.format(experimental_dataset)
+    save_name = os.path.join(results_dir, 'R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset))
+    save_name_rs = os.path.join(results_dir, 'RSuper_R_{}_RFE_SoftMax_Flog2_reduced_v1.pkl'.format(experimental_dataset))
     
     #%%
     with open(save_name, "rb" ) as fid:

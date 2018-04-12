@@ -18,11 +18,24 @@ import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
 
 feat_reduced = [
+        
+     'length',
+     'width_midbody',
+     'curvature_hips',
+     'curvature_head',
+     
+     'length',
+     'width_midbody',
+     'curvature_hips',
+     'curvature_head',
+     'width_head_base',
+     'quirkiness',
+     'minor_axis',
+     
      'd_length',
      'd_width_midbody',
      'd_curvature_hips',
      'd_curvature_head',
-     
      'd_width_head_base',
      'd_quirkiness',
      'd_minor_axis',
@@ -153,7 +166,8 @@ if __name__ == '__main__':
     uStrains = sorted(avg_hist_short.keys())
     for feat in feat_reduced:
         
-        save_name = 'short_hist2D_{}.pdf'.format(feat)
+        save_name = os.path.join(results_dir, 'short_hist2D_{}.pdf'.format(feat))
+        
         with PdfPages(save_name) as fid_pdf:
             for strain in uStrains:
                 h_atr, h_ctr = avg_hist_short[strain][feat]
@@ -173,5 +187,5 @@ if __name__ == '__main__':
                 
                 fid_pdf.savefig(fig)
                 plt.close(fig) 
-                
+    #%%
                
