@@ -101,7 +101,7 @@ def fold_generator(fold_param):
                 print(len(set(y_train)), len(set(y_test)))
 
 if __name__ == "__main__":
-    #is_super_reduced = False
+    is_super_reduced = False
     is_extra_comp = True
     
     is_extra_comp_less = True

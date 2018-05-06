@@ -27,7 +27,7 @@ if __name__ == '__main__':
     save_dir  = os.path.join(results_dir, 'figs')
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    
+   
     fnames = os.listdir(results_dir)
     
     bn = 'F_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
