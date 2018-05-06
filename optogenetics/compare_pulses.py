@@ -18,38 +18,47 @@ import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
 
 feat_reduced = [
-        
      'length',
      'width_midbody',
+     
+     'curvature_tail',
      'curvature_hips',
+     'curvature_midbody',
+     'curvature_neck',
      'curvature_head',
      
-     'length',
-     'width_midbody',
-     'curvature_hips',
-     'curvature_head',
-     'width_head_base',
-     'quirkiness',
-     'minor_axis',
-     
-     'd_length',
-     'd_width_midbody',
+     'd_curvature_tail',
      'd_curvature_hips',
      'd_curvature_head',
-     'd_width_head_base',
-     'd_quirkiness',
-     'd_minor_axis',
-     
-     'speed',
+     'd_curvature_neck',
      'd_curvature_midbody',
+     
+     'minor_axis',
+     'major_axis',
+     'quirkiness',
+     
      'relative_to_hips_radial_velocity_tail_tip',
-     'relative_to_head_base_radial_velocity_head_tip',
-     'relative_to_head_base_angular_velocity_head_tip'                   
-]
+     'relative_to_hips_angular_velocity_tail_tip',
+     
+     'relative_to_body_radial_velocity_tail_tip',
+     'relative_to_body_angular_velocity_tail_tip',
+     
+     'relative_to_body_radial_velocity_head_tip',
+     'relative_to_body_angular_velocity_head_tip',
+     
+     'relative_to_neck_radial_velocity_head_tip',
+     'relative_to_neck_angular_velocity_head_tip',
+     
+     'speed'
+     ]
 
 #%%
-data_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/data/'
-results_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/results/'
+
+#root_dir = '/Users/avelinojaver/OneDrive - Imperial College London/'
+root_dir = '/Users/ajaver/OneDrive - Imperial College London/'
+
+data_dir = root_dir + 'tierpsy_features_experiments/optogenetics/data/'
+results_dir = root_dir + 'tierpsy_features_experiments/optogenetics/results/'
 
 
 strains2ignore = ['ZX819', 'ZX991']
@@ -92,11 +101,11 @@ if __name__ == '__main__':
     dd = os.path.join(results_dir, 'pvals_long.pdf')
     plt.savefig(dd, bbox_inches='tight')
     #%%
-    sns.clustermap(np.log10(pvals_short[feat_reduced].T), method='ward', figsize=(10, 10))
+    sns.clustermap(np.log10(pvals_short[feat_reduced].T), method='ward', figsize=(5, 10))
     dd = os.path.join(results_dir, 'R_pvals_short.pdf')
     plt.savefig(dd, bbox_inches='tight')
-    
-    sns.clustermap(np.log10(pvals_long[feat_reduced][feat_reduced].T), method='ward', figsize=(10, 10))
+    #%%
+    sns.clustermap(np.log10(pvals_long[feat_reduced][feat_reduced].T), method='ward', figsize=(5, 10))
     dd = os.path.join(results_dir, 'R_pvals_long.pdf')
     plt.savefig(dd, bbox_inches='tight')
     
@@ -143,13 +152,13 @@ if __name__ == '__main__':
             JS_ctr_df = pd.DataFrame(dd, index=uStrains, columns=uStrains)
             
             
-            sns.clustermap(JS_atr_df)
+            sns.clustermap(JS_atr_df, figsize=(6, 6))
             plt.title('ATR ' + f_size)
             
             dd = os.path.join(results_dir, 'CrossJS_{}_ATR_{}.pdf'.format(set_type, f_size))
             plt.savefig(dd, bbox_inches='tight')
             
-            sns.clustermap(JS_ctr_df)
+            sns.clustermap(JS_ctr_df, figsize=(6, 6))
             plt.title('EtOH ' + f_size)
     
             dd = os.path.join(results_dir, 'CrossJS_{}_EtOH_{}.pdf'.format(set_type, f_size))
