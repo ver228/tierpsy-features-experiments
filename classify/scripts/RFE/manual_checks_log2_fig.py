@@ -65,7 +65,7 @@ if __name__ == '__main__':
             'tierpsy': 'All', 
             'tierpsy_no_sub' : 'No Motion Subdivisions', 
             'tierpsy_no_dev': 'No Derivatives',
-            'tierpsy_no_blob_no_eigen_only_abs' : 'No Eigenprojections,\nBlob Features, \nAbs Ventral/Dorsal'
+            'tierpsy_no_blob_no_eigen_only_abs_no_norm' : 'No Eigenprojections,\nNo Normalized by Length, \nAbs Ventral/Dorsal'
             }
     
     fig, ax = plt.subplots(1, 2, figsize=(10,4))

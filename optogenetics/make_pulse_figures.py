@@ -46,9 +46,11 @@ feat_labels = {
 
 
 #%%
-data_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/data/'
-results_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/results/'
+#root_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/'
+root_dir = '/Users/ajaver/OneDrive - Imperial College London/tierpsy_features_experiments/optogenetics/'
 
+data_dir = os.path.join(root_dir, 'data')
+results_dir = os.path.join(root_dir, 'results')
 
 strains2ignore = ['ZX819', 'ZX991']
 def read_data(fname):
@@ -78,12 +80,14 @@ if __name__ == '__main__':
     bin_ranges_file = os.path.join(data_dir, 'bin_limits.csv')
     bin_lims = pd.read_csv(bin_ranges_file, index_col=0)
     
-    ff = os.path.join(data_dir, 'pulses_short_hist.p')
+    ff = os.path.join(data_dir, 'plot_pulses_short_hist.p')
     avg_hist_short, pvals_short, jsd_short = read_data(ff)
-    ff = os.path.join(data_dir, 'pulses_long_hist.p')
+    ff = os.path.join(data_dir, 'plot_pulses_long_hist.p')
     avg_hist_long, pvals_long, jsd_long = read_data(ff)
-    
+    #%%
     uStrains = sorted(avg_hist_short.keys())
+    
+    uStrains = ['AQ2052', 'HBR180', 'HBR520']
     for feat in feat_reduced:
         
         save_name = os.path.join(results_dir, 'R_short_hist2D_{}.pdf'.format(feat))
@@ -91,13 +95,11 @@ if __name__ == '__main__':
         n_strains = len(uStrains)
         
         
-        fig_l = (3, 3*n_strains)#(2*n_strains, 5)
+        fig_l = (5, 2*n_strains)#(2*n_strains, 5)
         fig, axs = plt.subplots(n_strains, 2, figsize = fig_l, sharex=True, sharey=True)
             
         for i_type, s_type in enumerate(('Atr', 'Ctr')):
             i2 = 1 if i_type==0 else 0
-            
-           
             
             for i1, strain in enumerate(uStrains):
                 h_data = avg_hist_short[strain][feat][i_type]
@@ -112,9 +114,18 @@ if __name__ == '__main__':
                 axs[i1][i2].imshow(h_data, aspect='auto', interpolation='none', cmap="inferno")
                 axs[i1][i2].invert_yaxis()
                 axs[i1][i2].set_title('{} {}'.format(s_type, strain))
+                
+                ini_y, fin_y = axs[i1][i2].get_ylim()
+                
+                ini_x = 10.5
+                fin_x = 15.5
+                 
+                #axs[i1][i2].axvspan(ini_x, fin_x, alpha=0.15, color='green')
+                axs[i1][i2].plot((ini_x,ini_x), (ini_y, fin_y), 'g:', lw=1.5, alpha=0.75)
+                axs[i1][i2].plot((fin_x,fin_x), (ini_y, fin_y), 'g:', lw=1.5, alpha=0.75)
             
-            axs[i1][i2].set_xticks([0, 4.5, 9])
-            axs[i1][i2].set_xticklabels([0, 5, 10])
+            axs[i1][i2].set_xticks([0, 10.5, 20.5])
+            axs[i1][i2].set_xticklabels([-10, 0, 10])
             
             axs[i1][i2].set_yticks(np.linspace(0, h_data.shape[0]-1, 6))
             axs[i1][i2].set_yticklabels(tick_labels[feat])
@@ -123,6 +134,52 @@ if __name__ == '__main__':
             
         axs[i1][0].set_ylabel(feat_labels[feat])
         
+        fig.savefig(save_name, bbox_inches='tight')
+    #%%
+    for feat in feat_reduced:
+        
+        save_name = os.path.join(results_dir, 'R_long_hist2D_{}.pdf'.format(feat))
+            
+        n_strains = len(uStrains)
+        
+        
+        fig_l = (5, 2*n_strains)#(2*n_strains, 5)
+        fig, axs = plt.subplots(n_strains, 2, figsize = fig_l, sharex=True, sharey=True)
+            
+        for i_type, s_type in enumerate(('Atr', 'Ctr')):
+            i2 = 1 if i_type==0 else 0
+            
+            for i1, strain in enumerate(uStrains):
+                h_data = avg_hist_long[strain][feat][i_type]
+                h_data = h_data/np.sum(h_data)
+                h_data = h_data[1:, :]
+                
+                clip_v = 0.01
+                h_data = np.clip(h_data, 0, clip_v)
+                h_data = np.round(h_data/clip_v*100)
+                
+                axs[i1][i2].imshow(h_data, aspect='auto', interpolation='none', cmap="inferno")
+                axs[i1][i2].invert_yaxis()
+                axs[i1][i2].set_title('{} {}'.format(s_type, strain))
+                
+                ini_y, fin_y = axs[i1][i2].get_ylim()
+                
+                ini_x = 10.5
+                fin_x = 100.5
+                 
+                #axs[i1][i2].axvspan(ini_x, fin_x, alpha=0.15, color='green')
+                axs[i1][i2].plot((ini_x,ini_x), (ini_y, fin_y), 'g:', lw=1.5, alpha=0.75)
+                axs[i1][i2].plot((fin_x,fin_x), (ini_y, fin_y), 'g:', lw=1.5, alpha=0.75)
+            
+            axs[i1][i2].set_xticks([10.5, 60.5, 110.5])
+            axs[i1][i2].set_xticklabels([0, 50, 100])
+            
+            axs[i1][i2].set_yticks(np.linspace(0, h_data.shape[0]-1, 6))
+            axs[i1][i2].set_yticklabels(tick_labels[feat])
+            
+            
+           
+        axs[i1][0].set_ylabel(feat_labels[feat])
         
         fig.savefig(save_name, bbox_inches='tight')
     
