@@ -80,7 +80,7 @@ if __name__ == '__main__':
             yy = np.mean(val,axis=0)
             err = np.std(val,axis=0)
             
-            tot = len(sum(feats[0], []))
+            tot = len([x for ll in feats[0] for x in ll])
             n2 = int(np.floor(np.log2(tot - 1e-5)))
             xx = np.array([tot] + [2**x for x in range(n2, 0, -1)])
             

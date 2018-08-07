@@ -48,7 +48,7 @@ process_csv = function(fname){
   
   process_row_err = function (n) tryCatch(process_row(n), error=function(e) NULL)
   
-  cl <- makeCluster(21)
+  cl <- makeCluster(5)
   registerDoParallel(cl)
   tot = 20#nrow(pheno)
   results = foreach(i=1:tot) %dopar% process_row_err(i)

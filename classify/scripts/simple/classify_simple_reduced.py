@@ -95,4 +95,9 @@ if __name__ == '__main__':
             dd = '{} : {:.2f} {:.2f}'.format(set_type, np.mean(dat[n]), np.std(dat[n]))
             print(dd)
    
-        
+#        _, top_pred = output.topk(5)
+#        top_pred = top_pred.t()
+#        
+#        correct = top_pred.eq(target_v.view(1, -1).expand_as(top_pred))
+#        in_top5 = correct[:5].sum(0)
+#        correct_k = correct_k.detach().cpu().numpy().tolist()

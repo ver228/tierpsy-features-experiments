@@ -208,7 +208,7 @@ if __name__ == "__main__":
         
     
     else:
-        n_folds = 500
+        n_folds = 10
         df = feat_data['tierpsy']
         #remove ventral signed columns that where not abs (This ones seemed useless...)
         v_cols = [x for x in df.columns if not (('eigen' in x) or ('blob' in x))]
@@ -221,7 +221,7 @@ if __name__ == "__main__":
             v_cols = [x for x in v_cols if any(x.startswith(f) or x.startswith('d_' + f) for f in core_feats_reduced)]    
             feat_data['tierpsy_reduced'] = df[index_cols + v_cols].copy() #reduce to only the selected features 
     
-
+    a
     #%%
     
     fold_param = (cuda_id, train_args, metric2exclude, n_feats2remove)
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     if not is_extra_comp:
         save_name = 'R_' + save_name
         
-    if is_super_reduced:
+    elif is_super_reduced:
         all_feats = [x for x in feat_data['tierpsy_super_reduced'].columns if not x in col2ignore_r ]
         save_name = 'RSuper_' + save_name
         results = (all_feats, results)

@@ -49,7 +49,7 @@ def read_feat_events(fname):
     features_events = {feat:np.concatenate(val) for feat, val in features_events.items()}
     
     return features_events
-#%%
+
 def process_ow_file(fname):
     
     with pd.HDFStore(fname, 'r') as fid:

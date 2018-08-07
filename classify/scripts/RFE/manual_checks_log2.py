@@ -38,7 +38,7 @@ if __name__ == '__main__':
     
     #save_name = 'SyngentaLabeled.pkl'
     with open(save_name, "rb" ) as fid:
-            results = pickle.load(fid)
+        results = pickle.load(fid)
     res_db = {}
     for (db_name, i_fold), dat in results:
         if db_name not in res_db:
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         yy = np.mean(val,axis=0)
         err = np.std(val,axis=0)
         
-        tot = len(sum(feats[0], []))
+        tot = len([x for sublist in feats[0] for x in sublist])
         n2 = int(np.floor(np.log2(tot - 1e-5)))
         xx = np.array([tot] + [2**x for x in range(n2, 0, -1)])
         
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     feats, _,_, val = res_db[key]
     
     
-    tot = len(sum(feats[0], []))
+    tot = len([x for sublist in feats[0] for x in sublist])
     n2 = int(np.floor(np.log2(tot - 1e-5)))
     all_xx = np.array([tot] + [2**x for x in range(n2, 0, -1)])
     all_yy = np.mean(val,axis=0)
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         yy = np.mean(val,axis=0)
         err = np.std(val,axis=0)
         
-        tot = len(sum(feats[0], []))
+        tot = len([x for sublist in feats[0] for x in sublist])
         n2 = int(np.floor(np.log2(tot - 1e-5)))
         xx = np.array([tot] + [2**x for x in range(n2, 0, -1)])
         
@@ -128,6 +128,9 @@ if __name__ == '__main__':
         
         ff = os.path.join(save_dir, '{}_{}.pdf'.format(experimental_dataset, db_name))
         plt.savefig(ff)
+        
+    #%%
+    
      #%%       
      #I forgot to add the last feature remaining so I have to do a dirty hack 
     if os.path.basename(save_name).startswith('R_'):

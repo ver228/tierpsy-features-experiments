@@ -65,8 +65,6 @@ if __name__ == '__main__':
         val = dat[3]
         feats = dat[0]
         
-        
-        
         yy = np.mean(val,axis=0)
         err = np.std(val,axis=0)
         
