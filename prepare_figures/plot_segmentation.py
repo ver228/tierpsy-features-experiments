@@ -15,12 +15,13 @@ import matplotlib.patches as patches
 
 
 #%%
+from pathlib import Path
 if __name__ == '__main__':
     save_dir = './'
-    main_dir = '/Users/ajaver/OneDrive - Imperial College London/paper_tierpsy_tracker/different_setups/'
+    main_dir = str(Path.home() /  'OneDrive - Imperial College London/paper_tierpsy_tracker/different_setups/')
     
     set_type = 'single_worm'
-    mask_file = '/Users/ajaver/OneDrive - Imperial College London/Ev_videos/N2_adults/MaskedVideos/N2_A_24C_L_5_2015_06_16__19_54_27__.hdf5'
+    mask_file = str(Path.home() / 'OneDrive - Imperial College London/tierpsy_examples/Ev_videos/N2_adults/MaskedVideos/N2_A_24C_L_5_2015_06_16__19_54_27__.hdf5')
     tt = 0
     delT = 800
     w_index = 1
@@ -104,6 +105,7 @@ if __name__ == '__main__':
     s_xlim = plt.xlim()
     s_ylim = plt.ylim()
     #%%
+    
     plt.figure(figsize=(6, 1))
     for ii in range(0, 40, 5):
         tt = ii + 320
@@ -122,3 +124,43 @@ if __name__ == '__main__':
     plt.axis('off')
     plt.savefig(os.path.join(save_dir, 'sequence_skel.pdf'), 
                 bbox_inches='tight')
+    
+    #%%
+    tt = 90
+    with tables.File(feat_file, 'r') as fid:
+        cc1 = fid.get_node('/coordinates/dorsal_contours')[tt]/microns_per_pixel - stage_position_pix[tt]
+        cc2 = fid.get_node('/coordinates/ventral_contours')[tt]/microns_per_pixel   - stage_position_pix[tt]
+        ss = fid.get_node('/coordinates/skeletons')[tt]/microns_per_pixel - 0.5  - stage_position_pix[tt]
+        cc = np.vstack([cc1, cc2[::-1]])
+        
+    plt.figure()
+    plt.plot(ss[:, 0], ss[:, 1], '.-r', lw=lw_roi)
+    plt.fill(cc[:, 0], cc[:, 1], color='salmon', alpha=0.7)
+    plt.axis('equal')
+    plt.axis('off')
+    
+    plt.savefig(os.path.join(save_dir, 'simple_skel.pdf'), 
+                bbox_inches='tight')
+    #%%
+    skeletons = ss[None]
+    
+    dd = np.diff(skeletons, axis=1)
+    angles = np.arctan2(dd[..., 0], dd[..., 1])
+
+    mean_angles = np.mean(angles, axis=1)
+    angles -= mean_angles[:, None]
+    
+    plt.figure(),
+    plot(angles[0], '.-', color='brown', lw=lw_roi)
+    
+    xlims = (-1, 49)
+    plot(xlims, (0,0), '--', color='gray')
+    plt.ylim([-1., 1.5])
+    plt.xlim(xlims)
+    plt.xlabel('Segment Number', fontsize=14)
+    plt.ylabel('$\\theta$ (Radians)', fontsize=14)
+    
+    
+    plt.savefig(os.path.join(save_dir, 'angles.pdf'), 
+                bbox_inches='tight')
+    
