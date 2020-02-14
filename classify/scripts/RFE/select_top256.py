@@ -14,7 +14,9 @@ import os
 import sys
 sys.path.append('../../helper')
 from reader import read_feats
-from misc import results_root_dir
+#from misc import results_root_dir
+
+results_root_dir = '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features/classify/results/'
 
 if __name__ == '__main__':
     experimental_dataset = 'SWDB'
@@ -28,6 +30,8 @@ if __name__ == '__main__':
     #bn = 'R_{}_RFE_SoftMax_Flog2_reduced.pkl'.format(experimental_dataset)
     save_name = os.path.join(results_dir, bn)
     
+    
+    '/Users/avelinojaver/OneDrive - Imperial College London/tierpsy_features/classify/results/RFE/F_SWDB_RFE_SoftMax_Flog2_reduced.pkl'
     
     #save_name = 'SyngentaLabeled.pkl'
     with open(save_name, "rb" ) as fid:
@@ -45,7 +49,8 @@ if __name__ == '__main__':
     
     for set_type, dat in res_db.items():
         res_db[set_type] = list(zip(*dat))
-        
+    #%%
+    
     
     #%%
     # i forget to add the last features to the lists so i have to do a dirty hack
@@ -55,15 +60,17 @@ if __name__ == '__main__':
     for feat_folds in res_db['tierpsy_no_blob_no_eigen_only_abs_no_norm'][0]:
         feats_flat = [x for ll in feat_folds for x in ll]
         all_feats = all_feats | set(feats_flat)
-       
-    top256 = []
-    #now add the feature and select the top 256
-    for feat_folds in res_db['tierpsy_no_blob_no_eigen_only_abs_no_norm'][0]:
-        feats_flat = [x for ll in feat_folds for x in ll]
-        remaining_feat = all_feats - set(feats_flat)
-        feats_flat += list(remaining_feat)
-        top256.append(feats_flat[-256:][::-1])
-    top256 = pd.DataFrame(top256).T
-    top256.to_csv('top256_tierpsy_no_blob_no_eigen_only_abs_no_norm.csv', index=False)
+    top2k = pd.DataFrame(sorted(all_feats))
+    top2k.to_csv('top2k_tierpsy_no_blob_no_eigen_only_abs_no_norm.csv', index=False)
     
-    
+#    top256 = []
+#    #now add the feature and select the top 256
+#    for feat_folds in res_db['tierpsy_no_blob_no_eigen_only_abs_no_norm'][0]:
+#        feats_flat = [x for ll in feat_folds for x in ll]
+#        remaining_feat = all_feats - set(feats_flat)
+#        feats_flat += list(remaining_feat)
+#        top256.append(feats_flat[-256:][::-1])
+#    top256 = pd.DataFrame(top256).T
+#    top256.to_csv('top256_tierpsy_no_blob_no_eigen_only_abs_no_norm.csv', index=False)
+#    
+#    
